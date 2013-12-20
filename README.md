@@ -1,10 +1,12 @@
+==============================
 SensorNetworkTestCaseGenerator
+==============================
 
-To generate random polygons with multilayer holes and sub-regions
+To generate random polygons with multilayers of holes and sub-regions
 
-===================
-TO GENERATE REGIONS
-===================
+
+##TO GENERATE REGIONS
+
 Run command: 
       
       java -jar regionGenerator.jar [value]
