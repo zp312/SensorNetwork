@@ -120,10 +120,12 @@ public class GeneratorMainEntry {
 				
 				Point2D normedPt1 = rotateRec.transform(il.getP1(), null);
 				Point2D normedPt2 = rotateRec.transform(il.getP2(), null);
-				GeomUtil.drawLine(img, new Line2D.Double(normedPt1.getX(), normedPt1.getY(), normedPt2.getX(), normedPt2.getY()), lineC, iLineC, false);
+				//GeomUtil.drawLine(img, new Line2D.Double(normedPt1.getX(), normedPt1.getY(), normedPt2.getX(), normedPt2.getY()), lineC, iLineC, false);
 
-				outLineCoordNorm.write("Line" + totalLineC + " [" + normedPt1.getY() + "] ");
-				outLineCoordNorm.write("[" + normedPt2.getY() + "]\n");
+				outLineCoordNorm.write("Line" + totalLineC + " [" + normedPt1.getX() + ","
+						+ normedPt1.getY()+ "] ");
+				outLineCoordNorm.write("[" + normedPt1.getX()+ ","
+						+ normedPt2.getY() + "]\n");
 				
 				
 				iLineC++;
