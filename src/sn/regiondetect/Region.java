@@ -1,24 +1,37 @@
 package sn.regiondetect;
 
 import java.awt.Point;
-import java.awt.Polygon;
+import java.awt.geom.GeneralPath;
+import java.util.ArrayList;
+import java.util.List;
 
-public class Region extends Polygon {
+public class Region{
 	protected Region _next;
 	protected Region _prev;
 	protected int _layer;
 	protected int _radius;
 	protected Point _centre;
 	protected boolean _exceedBoundary;
+	protected int[] _xArray;
+	protected int[] _yArray;
+	protected List<Point> _pts;
+	protected GeneralPath _path;
 	
-	public Region(int[] x, int[] y, int nPts, int radius, int layer , Point centre,boolean exceed){
-		super(x, y, nPts);
+	public Region(int[] x, int[] y, int nPts, int radius, int layer ,Point centre, boolean exceed){
+		//super(x, y, nPts);
 		_next = null;
 		_prev = null;
+		_pts = new ArrayList<Point>(); 
 		_radius = radius;
 		_layer = layer;
 		_centre = centre;
 		_exceedBoundary = exceed;
+		_xArray = x;
+		_yArray = y;
+		for(int i = 0; i < x.length; i++){
+			_pts.add(new Point(x[i],y[i]));
+		}
+		_path = GeomUtil.getRoundedGeneralPathFromPoints(_pts);
 	}
 	
 	public boolean isHole(){
@@ -67,16 +80,18 @@ public class Region extends Polygon {
 		_next = next;
 	}
 	
+	public GeneralPath getShape(){
+		return _path;
+	}
+	
 	@Override
 	public String toString(){
 		String regionInfo = "";
-		int[] x = this.xpoints;
-		int[] y = this.ypoints;
 		
 		regionInfo += ("layer="+_layer+"\n");
 		regionInfo += ("Bounding Points\n");
-		for(int i = 0; i < x.length; i++){
-			regionInfo += ("["+x[i]+","+y[i]+"]\n");
+		for(int i = 0; i < _xArray.length; i++){
+			regionInfo += ("["+_xArray[i]+","+_yArray[i]+"]\n");
 		}
 			
 		return regionInfo;

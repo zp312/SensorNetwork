@@ -121,7 +121,7 @@ public class RegionGenerator {
 	 * @param height
 	 * @return
 	 */
-	public Point generateCentre(Polygon[] regions, int nPolygon, int width,
+	public Point generateCentre(Region[] regions, int nPolygon, int width,
 			int height) {
 		Random r = new Random();
 		Point centre = new Point(width / 2, height / 2);
@@ -132,7 +132,7 @@ public class RegionGenerator {
 			boolean inside = false;
 			centre.setLocation(r.nextInt(width), r.nextInt(height));
 			for (int i = 0; i < nPolygon; i++) {
-				if (regions[i].contains(centre)) {
+				if (regions[i].getShape().contains(centre)) {
 					inside = true;
 					break;
 				}
@@ -144,7 +144,8 @@ public class RegionGenerator {
 			att++;
 		}
 		if (att > 2000) {
-			centre.setLocation(-1, -1);
+			//centre.setLocation(-1, -1);
+			centre.setLocation(r.nextInt(width), r.nextInt(height));
 		}
 
 		return centre;
@@ -156,7 +157,7 @@ public class RegionGenerator {
 	 * @param height
 	 * @return
 	 */
-	public Polygon generate(int width, int height) {
+	public Region generate(int width, int height) {
 		return generate(width, height, new Point(width / 2, height / 2),
 				height / 6, height / 3, 15, 60);
 	}
@@ -224,14 +225,14 @@ public class RegionGenerator {
 
 		RegionGenerator rg = new RegionGenerator();
 
-		Polygon[] regions = rg.generateRegions(width, height);
+		Region[] regions = rg.generateRegions(width, height);
 
 		g2d.setBackground(Color.WHITE);
 		g2d.clearRect(0, 0, width, height);
 		for (int i = 0; i < regions.length; i++) {
 			g2d.setColor(Color.BLACK);
 			// g2d.fill(regions[i]);
-			g2d.draw(regions[i]);
+			g2d.draw(regions[i]._path);
 		}
 
 		frame = new ShowDebugImage("Regions", img);
