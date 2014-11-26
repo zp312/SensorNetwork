@@ -117,6 +117,10 @@ public class GeneratorMainEntry {
 		}
 		// Read file name count if exists
 		int caseFileCount = 0;
+		File dir = new File("data");
+		if(!dir.exists()){
+			dir.mkdir();
+		}
 		File file = new File("data/CaseCount.ini");
 		if (file.exists()) {
 			BufferedReader reader = null;
