@@ -17,13 +17,13 @@ public class GeneratorMainEntry {
 
 		Random r = new Random();
 
-		int nCases = 1000;
+		int nCases = 10;
 
 		int width = 800; // width of canvas
 		int height = 600; // height of canvas
 
 		int lineGap = 20; // Gap between lines (uniform)
-		int lineSet = 3; // indicates number of sets of parallel lines to be
+		int lineSet = 2; // indicates number of sets of parallel lines to be
 							// drawn
 
 		for (int i = 0; i < args.length; i++) {
