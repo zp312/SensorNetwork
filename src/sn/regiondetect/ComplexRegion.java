@@ -28,7 +28,7 @@ public class ComplexRegion {
 
 	// layer of overlapped simple regions
 	final private static int _maxLayer = 7;
-	final private static int _minLayer = 4;
+	final private static int _minLayer = 1;
 
 	private Region[] _complexRegion;
 
@@ -173,17 +173,17 @@ public class ComplexRegion {
 	 */
 	public int saveRegion(int caseID, String fileName, boolean fixedName)
 			throws IOException {
-		String filename;
+		String _fileName;
 		BufferedWriter logOutput, counterOutput;
 		_caseID = caseID;
 		if (fixedName) {
-			filename = fileName;
+			_fileName = fileName;
 		} else {
-			filename = String.format("data/test%d.log", caseID);
+			_fileName = String.format("data/test%d.log", caseID);
 		}
 
-		System.out.println("saving log to " + filename);
-		logOutput = new BufferedWriter(new FileWriter(filename));
+		System.out.println("saving log to " + _fileName);
+		logOutput = new BufferedWriter(new FileWriter(_fileName));
 		logOutput.write("width " + _width
 				+ System.getProperty("line.separator"));
 		logOutput.write("height " + _height
@@ -198,13 +198,13 @@ public class ComplexRegion {
 		logOutput.close();
 
 		// Save case image without lines
-		filename = filename + "-noline.png";
+		_fileName = _fileName + "-noline.png";
 
-		System.out.println("saving image to " + filename);
+		System.out.println("saving image to " + _fileName);
 		try {
-			ImageIO.write(this.drawRegion(), "png", new File(filename));
+			ImageIO.write(this.drawRegion(), "png", new File(_fileName));
 		} catch (IOException e) {
-			System.err.println("failed to save image " + filename);
+			System.err.println("failed to save image " + _fileName);
 			e.printStackTrace();
 		}
 
@@ -399,7 +399,7 @@ public class ComplexRegion {
 	 */
 	public Region[] generateRegions() {
 		Random r = new Random();
-		int nBaseRegion = 20;
+		int nBaseRegion = 15;
 		int nRegions = 0;
 		int nLayers = r.nextInt(_maxLayer - _minLayer) + _minLayer;
 		// Number of regions in each layer
@@ -408,9 +408,11 @@ public class ComplexRegion {
 		// Generate number of regions in each layer
 		for (int i = 0; i < nLayers; i++) {
 			if (i == 0) {
-				nRegionsPerLayer[i] = r.nextInt(nBaseRegion - 5) + 5;
+				//At least generate one component
+				nRegionsPerLayer[i] = r.nextInt(nBaseRegion - 1) + 5;
 				nRegions += nRegionsPerLayer[i];
 			} else {
+				//number of regions no greater than the number in its parent layer
 				nRegionsPerLayer[i] = r.nextInt(nRegionsPerLayer[i - 1]) + 1;
 				nRegions += nRegionsPerLayer[i];
 			}
@@ -430,7 +432,7 @@ public class ComplexRegion {
 				for (int j = 0; j < nRegionsPerLayer[i]; j++) {
 					centre = generateCentre(regions, currentRegion, _width,
 							_height);
-					minRad = _height / 12;
+					minRad = _height / 100;
 					maxRad = _height / 4;
 
 					regions[currentRegion] = this.generate(_width, _height,

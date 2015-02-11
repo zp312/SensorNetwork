@@ -42,17 +42,15 @@ public class SensorInterval {
 	 */
 	public SensorInterval(String sensorData) {
 		// parse the string, detecting positive component
-		String[] data = sensorData.split(" ");
-		sensorID = Integer.parseInt(data[0].split("Sensor")[1]);
+		String[] data = sensorData.split(",");
+		sensorID = Integer.parseInt(data[0]);
 
-		String p1 = data[1].substring(1, data[1].length() - 1);
-		double x1 = Double.parseDouble(p1.split(",")[0]);
-		double y1 = Double.parseDouble(p1.split(",")[1]);
+		double x1 = Double.parseDouble(data[1]);
+		double y1 = Double.parseDouble(data[2]);
 		Point2D start = new Point2D.Double(x1, y1);
 
-		String p2 = data[2].substring(1, data[2].length() - 1);
-		double x2 = Double.parseDouble(p2.split(",")[0]);
-		double y2 = Double.parseDouble(p2.split(",")[1]);
+		double x2 = Double.parseDouble(data[3]);
+		double y2 = Double.parseDouble(data[4]);
 		Point2D end = new Point2D.Double(x2, y2);
 
 		interval = new Line2D.Double(start, end);
@@ -129,7 +127,7 @@ public class SensorInterval {
 
 			// if yStart < 0, then yEnd must be greater than 0
 			// to ensure part of the interval is in the canvas
-			assert (yEnd > 0) : "interval out of bound";
+			//assert (yEnd > 0) : "interval out of bound";
 
 			if (yEnd > height) {
 				yEnd = height;
@@ -146,7 +144,7 @@ public class SensorInterval {
 
 			// if yStart > height, then yEnd must be smaller than 0
 			// to ensure part of the interval is in the canvas
-			assert (yEnd < height) : "interval out of bound";
+			//assert (yEnd < height) : "interval out of bound";
 
 			if (yEnd < 0) {
 				yEnd = 0;

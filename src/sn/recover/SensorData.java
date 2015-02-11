@@ -22,6 +22,7 @@ import sn.debug.ShowDebugImage;
 import sn.regiondetect.ComplexRegion;
 import sn.regiondetect.GeomUtil;
 import sn.regiondetect.Region;
+import sn.util.GrahamScan;
 
 // The class for one set of sensor data
 public class SensorData {
@@ -30,6 +31,8 @@ public class SensorData {
 	// list of positive intervals detected in data
 	private List<SensorInterval> positiveIntervals;
 	private List<SensorInterval> negativeIntervals;
+	private List<SensorInterval> positiveIntervalsNormed;
+	private List<SensorInterval> negativeIntervalsNormed;
 
 	// Angle of the parallel positive intervals in radians
 	private double sensorAngle;
@@ -51,6 +54,8 @@ public class SensorData {
 		// initialize variables
 		positiveIntervals = new ArrayList<SensorInterval>();
 		negativeIntervals = new ArrayList<SensorInterval>();
+		positiveIntervalsNormed = new ArrayList<SensorInterval>();
+		negativeIntervalsNormed = new ArrayList<SensorInterval>();
 		sensorAngle = Double.NaN; // initiated at NaN
 		sensorGap = Double.NaN; // initiated at NaN
 		sensorCount = Integer.MIN_VALUE; // initiated at min value
@@ -73,6 +78,8 @@ public class SensorData {
 
 		positiveIntervals = new ArrayList<SensorInterval>();
 		negativeIntervals = new ArrayList<SensorInterval>();
+		positiveIntervalsNormed = new ArrayList<SensorInterval>();
+		negativeIntervalsNormed = new ArrayList<SensorInterval>();
 		sensorAngle = angle;
 		sensorGap = gap;
 		sensorCount = Integer.MIN_VALUE; // initiated at min value
@@ -87,8 +94,8 @@ public class SensorData {
 		// generate a complex region
 		Region[] regions = complexRegion.getComplexRegion();
 
-		// sensor ID initialized to 1
-		int sensorId = 1;
+		// sensor ID initialized to 0
+		int sensorId = 0;
 
 		for (Line2D l : parallelLines) {
 			List<Line2D> intersectLines = new ArrayList<Line2D>();
@@ -113,7 +120,7 @@ public class SensorData {
 		}
 
 		negativeIntervals = getNegativeIntervalsFromPositive();
-
+		normalizeSensorData();
 	}
 
 	/**
@@ -128,6 +135,8 @@ public class SensorData {
 		// initialize variables
 		positiveIntervals = new ArrayList<SensorInterval>();
 		negativeIntervals = new ArrayList<SensorInterval>();
+		positiveIntervalsNormed = new ArrayList<SensorInterval>();
+		negativeIntervalsNormed = new ArrayList<SensorInterval>();
 		sensorAngle = Double.NaN; // initiated at NaN
 		sensorGap = Double.NaN; // initiated at NaN
 		sensorCount = Integer.MIN_VALUE; // initiated at min value
@@ -144,6 +153,7 @@ public class SensorData {
 		BufferedReader reader = null;
 		try {
 			reader = new BufferedReader(new FileReader(file));
+			reader.readLine();//skip the first line
 			String sensorData = null;
 			int sensorId = -1;
 
@@ -179,8 +189,14 @@ public class SensorData {
 					angleSet = true;
 				} else {
 					// enforce parallel positive intervals
-					assert (sensorAngle == angle) : "In file " + sensorFileName
-							+ ", positive intervals not parallel!";
+					double _sensorAngle = sensorAngle;
+					double _angle = angle;
+ 					if(sensorAngle < 0)
+ 						_sensorAngle += Math.PI;
+ 					if(angle < 0)
+ 						_angle += Math.PI;
+					assert (Math.abs(_sensorAngle - _angle) < 0.05) : "In file " + sensorFileName
+							+ ", positive intervals not parallel! diff is " + Math.abs(sensorAngle - angle);
 				}
 
 				// if it's a new sensor with a positive component, work out the
@@ -202,7 +218,7 @@ public class SensorData {
 					}
 					// otherwise, assert that it's the same.
 					else {
-						assert (sensorGap == currentGap) : "In file "
+						assert (Math.abs(sensorGap - currentGap) < 1) : "In file "
 								+ sensorFileName
 								+ ", gaps between sensors are not uniform!";
 					}
@@ -220,7 +236,7 @@ public class SensorData {
 
 			// Derive negative intervals
 			negativeIntervals = getNegativeIntervalsFromPositive();
-
+			normalizeSensorData();
 			// Print sensor data information
 			System.out.println("File " + sensorFileName + " read.");
 			System.out.println("Sensor count" + sensorCount);
@@ -231,6 +247,38 @@ public class SensorData {
 		}
 	}
 
+	/**
+	 * Normalize the sensor data to vertical
+	 */
+	public void normalizeSensorData(){
+		for (SensorInterval si : positiveIntervals) {
+			Point2D pt1 = si.getStart();
+			Point2D pt2 = si.getEnd();
+
+			AffineTransform rotate = new AffineTransform();
+			rotate.rotate(-sensorAngle + Math.PI / 2, width / 2, height / 2);
+			pt1 = rotate.transform(si.getStart(), null);
+			pt2 = rotate.transform(si.getEnd(), null);
+
+			SensorInterval si_norm = new SensorInterval(si.getSensorID(), pt1,pt2);
+			positiveIntervalsNormed.add(si_norm);
+		}
+
+		for (SensorInterval si : negativeIntervals) {
+			Point2D pt1 = si.getStart();
+			Point2D pt2 = si.getEnd();
+		
+			AffineTransform rotate = new AffineTransform();
+			rotate.rotate(-sensorAngle + Math.PI / 2, width / 2, height / 2);
+			pt1 = rotate.transform(si.getStart(), null);
+			pt2 = rotate.transform(si.getEnd(), null);
+			
+			SensorInterval si_norm = new SensorInterval(si.getSensorID(), pt1,pt2);
+			negativeIntervalsNormed.add(si_norm);
+		}
+	}
+	
+	
 	/**
 	 * public methods for modifying variables in the class
 	 * 
@@ -335,10 +383,17 @@ public class SensorData {
 
 		// add negatives after the last positive interval
 		if (prevIntervalID < sensorCount) {
-			SensorInterval lastPositiveInterval = positiveIntervals
-					.get(positiveIntervals.size() - 1);
-			int lastPositiveID = lastPositiveInterval.getSensorID();
-
+			int lastPositiveID;
+			SensorInterval lastPositiveInterval;
+			if (prevIntervalID != -1) {
+				lastPositiveInterval = positiveIntervals.get(positiveIntervals
+						.size() - 1);
+				lastPositiveID = lastPositiveInterval.getSensorID();
+			} else {
+				lastPositiveID = 0;
+				lastPositiveInterval = new SensorInterval(0,
+						new Point2D.Double(0, 0), new Point2D.Double(0, 0));
+			}
 			while (prevIntervalID < sensorCount) {
 				prevIntervalID++;
 				// add full negative sensors
@@ -540,34 +595,27 @@ public class SensorData {
 	 * 
 	 * @param filename
 	 */
-	public void drawPositiveIntervals(String filename, BufferedImage img, boolean useOffsets) {
+	public BufferedImage drawPositiveIntervals(BufferedImage img,
+			boolean useOffsets) {
 
 		if (img == null) {
 			// Initialize image
-			img = new BufferedImage(1024, 800,
-					BufferedImage.TYPE_4BYTE_ABGR);
+			img = new BufferedImage(1024, 800, BufferedImage.TYPE_4BYTE_ABGR);
 		}
 		Graphics2D g2d = (Graphics2D) img.createGraphics();
 		g2d.setColor(Color.BLACK);
 
 		addIntervalsToGraphic(g2d, positiveIntervals, useOffsets);
 
-		// Write to file
-		System.out.println("saving image to " + filename);
-		try {
-			ImageIO.write(img, "png", new File(filename));
-		} catch (IOException e) {
-			System.err.println("failed to save image " + filename);
-			e.printStackTrace();
-		}
+		return img;
 	}
-	
+
 	public void drawPositiveIntervals(String filename, BufferedImage img) {
-		drawPositiveIntervals(filename, img, true);
+		drawPositiveIntervals(img, true);
 	}
-	
-	public void drawPositiveIntervals(String filename){
-		drawPositiveIntervals(filename, null); 
+
+	public void drawPositiveIntervals(String filename) {
+		drawPositiveIntervals(filename, null);
 	}
 
 	/**
@@ -733,6 +781,8 @@ public class SensorData {
 		BufferedWriter outNegative = new BufferedWriter(new FileWriter(
 				negativeFileName));
 
+		outPositive.write("SensorID,pt1x,pt1y,pt2x,pt2y\n");
+
 		for (SensorInterval si : positiveIntervals) {
 			Point2D pt1 = si.getStart();
 			Point2D pt2 = si.getEnd();
@@ -743,12 +793,12 @@ public class SensorData {
 				pt2 = rotate.transform(si.getEnd(), null);
 			}
 
-			outPositive.write("Sensor" + si.getSensorID() + " [" + pt1.getX()
-					+ "," + pt1.getY() + "] ");
-			outPositive.write("[" + pt2.getX() + "," + pt2.getY() + "]\n");
+			outPositive.write(si.getSensorID() + "," + pt1.getX() + ","
+					+ pt1.getY() + "," + pt2.getX() + "," + pt2.getY() + "\n");
 
 		}
 
+		outNegative.write("SensorID,pt1x,pt1y,pt2x,pt2y");
 		for (SensorInterval si : negativeIntervals) {
 			Point2D pt1 = si.getStart();
 			Point2D pt2 = si.getEnd();
@@ -759,16 +809,15 @@ public class SensorData {
 				pt2 = rotate.transform(si.getEnd(), null);
 			}
 
-			outNegative.write("Sensor" + si.getSensorID() + " [" + pt1.getX()
-					+ "," + pt1.getY() + "] ");
-			outNegative.write("[" + pt2.getX() + "," + pt2.getY() + "]\n");
+			outNegative.write(si.getSensorID() + "," + pt1.getX() + ","
+					+ pt1.getY() + "," + pt2.getX() + "," + pt2.getY() + "\n");
 
 		}
 		outPositive.close();
 		outNegative.close();
 	}
 
-	// tests
+
 
 	/**
 	 * test parsing file "data/test0000-linecoord[0..2]" draw their convex hull
