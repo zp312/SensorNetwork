@@ -184,50 +184,44 @@ public class SeparatedSensorGroups {
 				HashMap<Integer, List<SensorInterval>> intervalMap2 = sg2
 						.getSensorIntervals();
 
-				boolean pairAdded = false;
-
 				for (int key : intervalMap1.keySet()) {
-					if (pairAdded)
+
+					if (intervalMap2.containsKey(key)
+							|| intervalMap2.containsKey(key + 1)
+							|| intervalMap2.containsKey(key - 1)) {
+						int[] pair = { sg1.getID(), sg2.getID() };
+						mergablePairs.add(pair);
+						System.out.println(groupType + "mergable pair "
+								+ pair[0] + " " + pair[1]);
 						break;
-					if (intervalMap2.containsKey(key)) {
-						List<SensorInterval> intervals1 = intervalMap1.get(key);
-						List<SensorInterval> intervals2 = intervalMap2.get(key);
-
-						List<Point2D[]> gapIntervals = findGapIntervals(
-								intervals1, intervals2);
-
-						List<SensorInterval> intervals;
-						if (positive) {
-							assert (this.positiveIntervalMap.containsKey(key)) : "inconsistent sensor data from id : "
-									+ key;
-							intervals = this.positiveIntervalMap.get(key);
-						} else {
-							assert (this.negativeIntervalMap.containsKey(key)) : "inconsistent sensor data from id : "
-									+ key;
-							intervals = this.negativeIntervalMap.get(key);
-
-						}
-						for (Point2D[] ptArray : gapIntervals) {
-							boolean interIntervalFound = false;
-							for (SensorInterval interval : intervals) {
-								if (ptArray[0].getY() < interval.getEnd()
-										.getY()
-										&& ptArray[1].getY() < interval
-												.getEnd().getY()) {
-									interIntervalFound = true;
-								}
-							}
-							if (!interIntervalFound) {
-								int[] pair = { sg1.getID(), sg2.getID() };
-								mergablePairs.add(pair);
-								pairAdded = true;
-
-								System.out.println(groupType
-										+ "mergable pair " + pair[0] + " "
-										+ pair[1]);
-								break;
-							}
-						}
+						/*
+						 * List<SensorInterval> intervals1 =
+						 * intervalMap1.get(key); List<SensorInterval>
+						 * intervals2 = intervalMap2.get(key);
+						 * 
+						 * List<Point2D[]> gapIntervals = findGapIntervals(
+						 * intervals1, intervals2);
+						 * 
+						 * List<SensorInterval> intervals; if (positive) {
+						 * assert (this.positiveIntervalMap.containsKey(key)) :
+						 * "inconsistent sensor data from id : " + key;
+						 * intervals = this.positiveIntervalMap.get(key); } else
+						 * { assert (this.negativeIntervalMap.containsKey(key))
+						 * : "inconsistent sensor data from id : " + key;
+						 * intervals = this.negativeIntervalMap.get(key);
+						 * 
+						 * } for (Point2D[] ptArray : gapIntervals) { boolean
+						 * interIntervalFound = false; for (SensorInterval
+						 * interval : intervals) { if (ptArray[0].getY() <
+						 * interval.getEnd() .getY() && ptArray[1].getY() >
+						 * interval .getEnd().getY()) { interIntervalFound =
+						 * true; } } if (!interIntervalFound) { int[] pair = {
+						 * sg1.getID(), sg2.getID() }; mergablePairs.add(pair);
+						 * pairAdded = true;
+						 * 
+						 * System.out.println(groupType + "mergable pair " +
+						 * pair[0] + " " + pair[1]); break; } }
+						 */
 					}
 
 					// TODO if(intervalMap2.containsKey(key+-1))
@@ -253,6 +247,7 @@ public class SeparatedSensorGroups {
 		Collections.reverse(list2);
 
 		for (SensorInterval si1 : list1) {
+			// System.out.println("list 1 ascent order " + si1.getEnd().getY());
 			double lastY = Double.NaN;
 			for (SensorInterval si2 : list2) {
 				if (si1.getEnd().getY() > si2.getEnd().getY()) {
@@ -269,9 +264,10 @@ public class SeparatedSensorGroups {
 		Collections.reverse(list1);
 		Collections.reverse(list2);
 
-		for (SensorInterval si2 : list1) {
+		for (SensorInterval si2 : list2) {
+			// System.out.println("list 2 ascent order " + si2.getEnd().getY());
 			double lastY = Double.NaN;
-			for (SensorInterval si1 : list2) {
+			for (SensorInterval si1 : list1) {
 				if (si2.getEnd().getY() > si1.getEnd().getY()) {
 					if (si1.getEnd().getY() == lastY)
 						break;
@@ -290,8 +286,8 @@ public class SeparatedSensorGroups {
 	private class YComparator implements Comparator<SensorInterval> {
 		@Override
 		public int compare(SensorInterval si1, SensorInterval si2) {
-			return (new Double(si1.getStart().getY())).compareTo(new Double(si2
-					.getStart().getY()));
+			return (new Double(si1.getEnd().getY())).compareTo(new Double(si2
+					.getEnd().getY()));
 		}
 	}
 
@@ -314,18 +310,29 @@ public class SeparatedSensorGroups {
 	}
 
 	private void setMergeInfo(int id1, int id2,
-			HashMap<Integer, Integer> mergeAddressMap) {
+			HashMap<Integer, Integer> mergeAddressMap,
+			HashMap<Integer, List<Integer>> mergeMap) {
 
 		if (mergeAddressMap.containsKey(id1)) {
 			if (mergeAddressMap.containsKey(id2)) {
 				int rootID1 = mergeAddressMap.get(id1);
 				int rootID2 = mergeAddressMap.get(id2);
-				mergeRegions(rootID1, rootID2, mergeAddressMap);
+				if(rootID1 != rootID2){
+					mergeRegions(rootID1, rootID2, mergeAddressMap);
+					
+					List<Integer> list1 = mergeMap.get(rootID1);
+					List<Integer> list2 = mergeMap.get(rootID2);
+					list1.addAll(list2);
+					list1.add(rootID2);
+					mergeMap.remove(list2);
+				}
 			}
 
 			else {
 				int rootID1 = mergeAddressMap.get(id1);
 				mergeAddressMap.put(id2, rootID1);
+				List<Integer> list1 = mergeMap.get(rootID1);
+				list1.add(id2);
 			}
 
 		}
@@ -333,10 +340,16 @@ public class SeparatedSensorGroups {
 		else if (mergeAddressMap.containsKey(id2)) {
 			int rootID2 = mergeAddressMap.get(id2);
 			mergeAddressMap.put(id1, rootID2);
+			List<Integer> list2 = mergeMap.get(rootID2);
+			list2.add(id1);
 		}
 
 		else {
 			mergeAddressMap.put(id2, id1);
+			List<Integer> list = new ArrayList<Integer>();
+			//list.add(id1);
+			list.add(id2);
+			mergeMap.put(id1, list);
 		}
 	}
 
@@ -363,7 +376,9 @@ public class SeparatedSensorGroups {
 							rootIntervalMap.get(k).addAll(
 									candidateIntervalMap.get(k));
 						} else {
-							rootIntervalMap.put(k, candidateIntervalMap.get(k));
+							List<SensorInterval> newList = new ArrayList<SensorInterval>();
+							newList.addAll(candidateIntervalMap.get(k));
+							rootIntervalMap.put(k, newList);
 						}
 					}
 
@@ -373,8 +388,12 @@ public class SeparatedSensorGroups {
 							rootID);
 
 					HashMap<Integer, List<SensorInterval>> sensorIntervalMap = new HashMap<Integer, List<SensorInterval>>();
-					sensorIntervalMap.putAll(oldSg.getSensorIntervals());
-
+					for(int key : oldSg.getSensorIntervals().keySet()){
+						 List<SensorInterval> copyList = new ArrayList<SensorInterval>();
+						 copyList.addAll(oldSg.getSensorIntervals().get(key));
+						 sensorIntervalMap.put(key, copyList);
+					}
+					
 					SensorGroup newSg = new SensorGroup(sensorIntervalMap,
 							rootID);
 					mergedGroupMap.put(rootID, newSg);
@@ -386,15 +405,24 @@ public class SeparatedSensorGroups {
 				SensorGroup oldSg = ssg.getPositiveIntervalGroups().get(id);
 
 				HashMap<Integer, List<SensorInterval>> sensorIntervalMap = new HashMap<Integer, List<SensorInterval>>();
-				sensorIntervalMap.putAll(oldSg.getSensorIntervals());
-
+				
+				for(int key : oldSg.getSensorIntervals().keySet()){
+					 List<SensorInterval> copyList = new ArrayList<SensorInterval>();
+					 copyList.addAll(oldSg.getSensorIntervals().get(key));
+					 sensorIntervalMap.put(key, copyList);
+				}
+				
+//				for(List<SensorInterval> siList: oldSg.getSensorIntervals().values()){
+//					System.out.println("old sg size " + siList.size() + " id " + id );
+//				}
+		
 				SensorGroup newSg = new SensorGroup(sensorIntervalMap, id);
 				mergedGroupMap.put(id, newSg);
 			}
 		}
-		System.out.println("merged map size " + mergedGroupMap.size()
-				+ " original ssg size "
-				+ ssg.getPositiveIntervalGroups().size());
+//		System.out.println("merged map size " + mergedGroupMap.size()
+//				+ " original ssg size "
+//				+ ssg.getPositiveIntervalGroups().size());
 		return mergedGroupMap;
 	}
 
@@ -472,7 +500,7 @@ public class SeparatedSensorGroups {
 				diff2 = 0;
 			else
 				diff2 = directionDiff2[i]
-						* (sgList1.get(i).getSize() / totalSize2);
+						* (sgList2.get(i).getSize() / totalSize2);
 			err = Math.abs(diff1 - diff2);
 			diff += err;
 		}
@@ -533,7 +561,7 @@ public class SeparatedSensorGroups {
 	}
 
 	public void addIntervalsToGraphic(Graphics2D g2d,
-		List<SensorGroup> sensorGroups, int xOffset, int yOffset) {
+			List<SensorGroup> sensorGroups, int xOffset, int yOffset) {
 		// Draw components
 		int nGroups = sensorGroups.size();
 		for (int i = 0; i < nGroups; i++) {
@@ -546,10 +574,11 @@ public class SeparatedSensorGroups {
 			g2d.setColor(randomColor);
 			// draw group id
 			// SensorInterval si = siList.get(0);
-			g2d.drawString(String.valueOf(curGroup.getID()), (int)curGroup.getCentrePoint().getX()
-			 + xOffset, (int)curGroup.getCentrePoint().getY() + yOffset);
+			g2d.drawString(String.valueOf(curGroup.getID()), (int) curGroup
+					.getCentrePoint().getX() + xOffset, (int) curGroup
+					.getCentrePoint().getY() + yOffset);
 			for (int key : curGroup.getSensorIntervals().keySet()) {
-				//g2d.setColor(randomColor);
+				// g2d.setColor(randomColor);
 				List<SensorInterval> siList = curGroup.getSensorIntervals()
 						.get(key);
 
@@ -583,39 +612,101 @@ public class SeparatedSensorGroups {
 			// ids>>
 			// HashMap<Integer, List<Integer>> mergeMap1 = new HashMap<Integer,
 			// List<Integer>>();
+			boolean conflict1 = false;
 			HashMap<Integer, Integer> mergeAddressMap1 = new HashMap<Integer, Integer>();
+			HashMap<Integer, List<Integer>> mergeMap1 = new HashMap<Integer, List<Integer>>();
+			List<Integer> nonMergePairs1 = new ArrayList<Integer>();
+			
 			for (int j = 0; j < n; j++) {
 				if (getBit(i, j) == 1) {
 					int[] mergablePair = this.mergablePositiveGroupPairs.get(j);
 					int id1 = mergablePair[0];
 					int id2 = mergablePair[1];
-					setMergeInfo(id1, id2, mergeAddressMap1);
+					setMergeInfo(id1, id2, mergeAddressMap1,mergeMap1);
+				}
+				else{
+					nonMergePairs1.add(j);
 				}
 			}
+			
+			for(int k : mergeMap1.keySet()){
+				if(conflict1)
+					break;
+				List<Integer> mergedComponents = mergeMap1.get(k);
+				for(int index : nonMergePairs1){
+					int[] pair = this.mergablePositiveGroupPairs.get(index);
+					int id1 = pair[0];
+					int id2 = pair[1];
+					if((id1 == k || mergedComponents.contains(id1))&&(id2 == k || mergedComponents.contains(id2))){
+						conflict1 = true;
+						break;
+					}
+				}
+			}
+			if(conflict1)
+				continue;
 
 			int m = ssg.mergablePositiveGroupPairs.size();
 			for (int p = 0; p < Math.pow(2, m); p++) {
+				
+				boolean conflict2 = false;
 				// HashMap<Integer, List<Integer>> mergeMap2 = new
 				// HashMap<Integer, List<Integer>>();
 				HashMap<Integer, Integer> mergeAddressMap2 = new HashMap<Integer, Integer>();
-
-				for (int j = 0; j < m; j++) {
-					if (getBit(i, j) == 1) {
+				HashMap<Integer, List<Integer>> mergeMap2 = new HashMap<Integer, List<Integer>>();
+				List<Integer> nonMergePairs2 = new ArrayList<Integer>();
+				for (int q = 0; q < m; q++) {
+					if (getBit(p, q) == 1) {
 						int[] mergablePair = ssg.mergablePositiveGroupPairs
-								.get(j);
+								.get(q);
 						int id1 = mergablePair[0];
 						int id2 = mergablePair[1];
 
-						setMergeInfo(id1, id2, mergeAddressMap2);
+						setMergeInfo(id1, id2, mergeAddressMap2,mergeMap2);
+
+					}
+					else{
+						nonMergePairs2.add(q);
 					}
 				}
 
+				for(int k : mergeMap2.keySet()){
+					if(conflict2)
+						break;
+					List<Integer> mergedComponents = mergeMap2.get(k);
+					for(int index : nonMergePairs2){
+						int[] pair = ssg.mergablePositiveGroupPairs.get(index);
+						int id1 = pair[0];
+						int id2 = pair[1];
+						if((id1 == k || mergedComponents.contains(id1))&&(id2 == k || mergedComponents.contains(id2))){
+							conflict2 = true;
+							break;
+						}
+					}
+				}
+				if(conflict2){
+					//if(p%10000 == 0)
+					//	System.out.println("ignore conflict merge, times p " + p);
+					continue;
+				}
+				
+				SensorGroup oldSg = ssg.getPositiveIntervalGroups().get(1);
+
+				
 				HashMap<Integer, SensorGroup> map1 = constructMergedGroup(
 						mergeAddressMap1, this);
+				
+				for(List<SensorInterval> siList: oldSg.getSensorIntervals().values()){
+					System.out.println("before old sg size " + siList.size());
+				}
 				HashMap<Integer, SensorGroup> map2 = constructMergedGroup(
 						mergeAddressMap2, ssg);
+				for(List<SensorInterval> siList: oldSg.getSensorIntervals().values()){
+					System.out.println("after old sg size " + siList.size());
+				}
 				double diff = calculateDirectionChainDis(map1, map2);
-				System.out.println(diff + " times i " + i + " p " + p);
+				//if(p%10000 == 0)
+					System.out.println(diff + " times i " + i + " p " + p);
 			}
 		}
 
@@ -666,8 +757,7 @@ public class SeparatedSensorGroups {
 		g2d.setBackground(Color.WHITE);
 		g2d.clearRect(0, 0, width, height);
 
-		SensorData positiveData = new SensorData(
-				filename, 800, 600);
+		SensorData positiveData = new SensorData(filename, 800, 600);
 		// SensorData negativeData = new
 		// SensorData("data/test7-negativeDataNorm-0", 800, 600);
 		SeparatedSensorGroups ssg1 = new SeparatedSensorGroups(positiveData);
@@ -682,24 +772,24 @@ public class SeparatedSensorGroups {
 	}
 
 	public static void main(String[] args) {
-//		SensorData sd1 = new SensorData("data/test1-positiveDataNorm-0", 800,
-//				600);
-//		SensorData sd2 = new SensorData("data/test1-positiveDataNorm-1", 800,
-//				600);
-//
-//		SeparatedSensorGroups ssg1 = new SeparatedSensorGroups(sd1);
-//		SeparatedSensorGroups ssg2 = new SeparatedSensorGroups(sd2);
-//
-//		List<SensorGroup> posiSgs = ssg1.positiveIntervalGroups;
-//
-//		System.out.println("pos size " + posiSgs.size());
-//
-//		ssg1.initialMatch(ssg2);
-		try {
-			testDrawIntervalGroups("data/test1-positiveDataNorm-0");
-		} catch (Exception e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		SensorData sd1 = new SensorData("data/test1-positiveDataNorm-0", 800,
+				600);
+		SensorData sd2 = new SensorData("data/test1-positiveDataNorm-1", 800,
+				600);
+
+		SeparatedSensorGroups ssg1 = new SeparatedSensorGroups(sd1);
+		SeparatedSensorGroups ssg2 = new SeparatedSensorGroups(sd2);
+
+		List<SensorGroup> posiSgs = ssg1.positiveIntervalGroups;
+
+		System.out.println("pos size " + posiSgs.size());
+
+		ssg1.initialMatch(ssg2);
+//		 try {
+//		 testDrawIntervalGroups("data/test1-positiveDataNorm-1");
+//		 } catch (Exception e) {
+//		 // TODO Auto-generated catch block
+//		 e.printStackTrace();
+//		 }
 	}
 }
