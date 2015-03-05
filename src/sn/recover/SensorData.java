@@ -312,6 +312,10 @@ public class SensorData {
 		return sensorAngle;
 	}
 
+	public double getSensorGap(){
+		return this.sensorGap;
+	}
+	
 	/**
 	 * read list of coordinates that make up the positive intervals
 	 * 
@@ -771,7 +775,7 @@ public class SensorData {
 	 * @throws IOException
 	 */
 	public void writeIntervalsToFile(String positiveFileName,
-			String negativeFileName, boolean normalize) throws IOException {
+			String negativeFileName, boolean normalize,double scale) throws IOException {
 
 		System.out.println("saving positive intervals to " + positiveFileName);
 		BufferedWriter outPositive = new BufferedWriter(new FileWriter(
@@ -791,6 +795,9 @@ public class SensorData {
 				rotate.rotate(-sensorAngle + Math.PI / 2, width / 2, height / 2);
 				pt1 = rotate.transform(si.getStart(), null);
 				pt2 = rotate.transform(si.getEnd(), null);
+				
+				pt1.setLocation(pt1.getX()*scale, pt1.getY()*scale);
+				pt2.setLocation(pt2.getX()*scale, pt2.getY()*scale);
 			}
 
 			outPositive.write(si.getSensorID() + "," + pt1.getX() + ","
@@ -807,6 +814,8 @@ public class SensorData {
 				rotate.rotate(-sensorAngle + Math.PI / 2, width / 2, height / 2);
 				pt1 = rotate.transform(si.getStart(), null);
 				pt2 = rotate.transform(si.getEnd(), null);
+				pt1.setLocation(pt1.getX()*scale, pt1.getY()*scale);
+				pt2.setLocation(pt2.getX()*scale, pt2.getY()*scale);
 			}
 
 			outNegative.write(si.getSensorID() + "," + pt1.getX() + ","

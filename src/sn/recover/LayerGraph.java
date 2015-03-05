@@ -113,6 +113,10 @@ public class LayerGraph {
 		return components;
 	}
 
+	public int getComponentsCount(){
+		return this._nComponents;
+	}
+	
 	/**
 	 * set the layer information for all components
 	 */

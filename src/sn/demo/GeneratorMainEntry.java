@@ -135,7 +135,7 @@ public class GeneratorMainEntry {
 		int width = 800; // width of canvas
 		int height = 600; // height of canvas
 
-		int lineGap = 10; // Gap between lines (uniform)
+		int lineGap = 15; // Gap between lines (uniform)
 		int lineSet = 2; // indicates number of sets of parallel lines to be
 							// drawn
 
@@ -277,13 +277,38 @@ public class GeneratorMainEntry {
 			ArrayList matList = new ArrayList();
 
 			double[] lineAngle = new double[lineSet];// angle of lines
+//			double scale = 1./1.2;
+//			lineGap = 25;
 			for (int n = 0; n < lineSet; n++) {
-				if (r.nextBoolean())
-					lineAngle[n] = r.nextDouble() * Math.PI / 2.1;
+//				if(n == 2)
+//					lineGap = 20;
+//				if(n == 4)
+//					lineGap = 15;
+//				if(n == 6)
+//					lineGap = 10;
+//				if(n ==8)
+//					lineGap = 5;
+//
+//				if(n%2 ==0)
+//					scale = 1;
+//				else
+//					scale = 1./1.2;
+				//scale = scale/1.2;
+			/***use different gap for each set****/
+				//lineGap += 10;
+			/*************************************/
+//				if (r.nextBoolean())
+//					lineAngle[n] = r.nextDouble() * Math.PI / 2.1;
+//				else
+//					lineAngle[n] = r.nextDouble() * Math.PI * (1 - 1 / 1.9)
+//							+ Math.PI / 1.9;
+				
+				if(n%2 == 0)
+					lineAngle[n] = Math.PI/16;
 				else
-					lineAngle[n] = r.nextDouble() * Math.PI * (1 - 1 / 1.9)
-							+ Math.PI / 1.9;
-
+					lineAngle[n] = Math.PI*9/16;
+				
+				
 				d = new SensorData(complexRegion, lineGap, lineAngle[n],
 						complexRegion.getWidth(), complexRegion.getHeight());
 				fileName = String.format(fileHead + "-positiveInterval-%d.png",
@@ -311,13 +336,13 @@ public class GeneratorMainEntry {
 				negativeFileName = String.format(fileHead + "-negativeData-%d",
 						n);
 				d.writeIntervalsToFile(positiveFileName, negativeFileName,
-						false);
+						false, 1.);
 
 				positiveFileName = String.format(fileHead
 						+ "-positiveDataNorm-%d", n);
 				negativeFileName = String.format(fileHead
 						+ "-negativeDataNorm-%d", n);
-				d.writeIntervalsToFile(positiveFileName, negativeFileName, true);
+				d.writeIntervalsToFile(positiveFileName, negativeFileName, true, 1/*scale*/);
 
 				List<Point2D> samplePts = getSampledSensorData(5,positiveFileName);
 
@@ -337,7 +362,6 @@ public class GeneratorMainEntry {
 						samplePts.size());
 
 				matList.add(mlDouble);
-
 			}
 			
 			fileName = String.format("CPD2/data/test%d-sample.mat", caseFileCount);

@@ -18,9 +18,13 @@ public class StarRelation {
 	
 	public int GetStarRelation(Point2D pt1, Point2D pt2){
 		if(pt1.getX() != pt2.getX()){
-			double angle = Math.atan((pt1.getY()-pt2.getY())/(pt2.getX()-pt1.getX()));
+			double angle = Math.atan((pt2.getY()-pt1.getY())/(pt2.getX()-pt1.getX()));
 			if(pt1.getX() > pt2.getX())
-				angle += Math.PI;
+				//due to the different coordinate system
+				angle = 1.5 * Math.PI + angle;
+			else if(pt1.getX() < pt2.getX())
+				//due to the different coordinate system
+				angle = 0.5* Math.PI + angle;
 			return (int)Math.ceil(angle/this.diff) + (int)Math.floor(angle/this.diff);
 		}
 			
@@ -40,8 +44,8 @@ public class StarRelation {
 	
 	public static void main(String args[]){
 		
-		Point2D pt1 = new Point2D.Double(1, 1);
-		Point2D pt2 = new Point2D.Double(2, 0);
+		Point2D pt1 = new Point2D.Double(669, 439);
+		Point2D pt2 = new Point2D.Double(684, 471);
 		StarRelation star = new StarRelation(12);
 		int relation = star.GetStarRelation(pt1, pt2);
 		System.out.println(relation);

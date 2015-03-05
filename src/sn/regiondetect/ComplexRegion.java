@@ -399,7 +399,7 @@ public class ComplexRegion {
 	 */
 	public Region[] generateRegions() {
 		Random r = new Random();
-		int nBaseRegion = 15;
+		int nBaseRegion = 7;
 		int nRegions = 0;
 		int nLayers = r.nextInt(_maxLayer - _minLayer) + _minLayer;
 		// Number of regions in each layer
@@ -409,7 +409,7 @@ public class ComplexRegion {
 		for (int i = 0; i < nLayers; i++) {
 			if (i == 0) {
 				//At least generate one component
-				nRegionsPerLayer[i] = r.nextInt(nBaseRegion - 1) + 5;
+				nRegionsPerLayer[i] = r.nextInt(nBaseRegion) + 1;
 				nRegions += nRegionsPerLayer[i];
 			} else {
 				//number of regions no greater than the number in its parent layer
@@ -592,8 +592,11 @@ public class ComplexRegion {
 		g2d.clearRect(0, 0, width, height);
 		
 		LayerGraph layerGraph = new LayerGraph(complexRegion);
+		System.out.println(layerGraph.getComponentsCount());
 		layerGraph.drawComponents(layerGraph.getUnboundedComponent(), imgLayer, Color.RED, false);
 		
+		
+
 		frameReconstruct = new ShowDebugImage("Layer graph", imgLayer);
 	}
 
