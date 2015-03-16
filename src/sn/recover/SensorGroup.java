@@ -80,13 +80,14 @@ public class SensorGroup {
 		}
 		Point2D[] pts = new Point2D[ptList.size()];
 		ptList.toArray(pts);
-
-		GrahamScan gs = new GrahamScan(pts);
-		this.convexHull = new ArrayList<Point2D>((Stack<Point2D>) gs.hull());
+		if (pts.length >= 1) {
+			GrahamScan gs = new GrahamScan(pts);
+			this.convexHull = new ArrayList<Point2D>((Stack<Point2D>) gs.hull());
+		}
+		else
+			this.convexHull =  new ArrayList<Point2D>();
 	}
 
-	
-	
 	private void calculateApproximativeSize(List<Point2D> extremePts) {
 
 		// if there are only 2 points, take length as size
@@ -138,8 +139,8 @@ public class SensorGroup {
 		}
 
 		double centreX = 0., centreY = 0.;
-		
-		//function for calculate the centroid
+
+		// function for calculate the centroid
 		for (int i = 0; i < extremePts.size(); i++) {
 			int index;
 			if (i == extremePts.size() - 1)
@@ -159,7 +160,6 @@ public class SensorGroup {
 		this.centroid = new Point2D.Double(centreX, centreY);
 	}
 
-	
 	public List<Point2D> getConvexHull() {
 		return this.convexHull;
 	}
@@ -188,33 +188,32 @@ public class SensorGroup {
 	}
 
 	public static void main(String[] args) {
-		 Line2D line1 = new Line2D.Double(new Point2D.Double(-1,2), new
-		 Point2D.Double(-1,0));
-		 SensorInterval si1 = new SensorInterval(0, line1);
-		 Line2D line2 = new Line2D.Double(new Point2D.Double(1,2), new
-		 Point2D.Double(1,0));
-		 SensorInterval si2 = new SensorInterval(1, line2);
-		
-		 List<SensorInterval> siList1 = new ArrayList<SensorInterval>();
-		 siList1.add(si1);
-		
-		 List<SensorInterval> siList2 = new ArrayList<SensorInterval>();
-		 siList2.add(si2);
-		
-		 HashMap<Integer,List<SensorInterval>> siMap = new
-		 HashMap<Integer,List<SensorInterval>>();
-		 siMap.put(0,siList1);
-		 siMap.put(1,siList2);
-		
-		 SensorGroup sg = new SensorGroup(siMap,0);
-		
-		 for(int i = 0 ; i < sg.getConvexHull().size(); i ++){
-		
-		 System.out.println("hull pt " + sg.getConvexHull().get(i).getX() +
-		 " " + sg.getConvexHull().get(i).getY());
-		 }
-		
-		 System.out.println("size " + sg.getSize() + " centroid " +
-		 sg.getCentrePoint());
+		Line2D line1 = new Line2D.Double(new Point2D.Double(-1, 2),
+				new Point2D.Double(-1, 0));
+		SensorInterval si1 = new SensorInterval(0, line1);
+		Line2D line2 = new Line2D.Double(new Point2D.Double(1, 2),
+				new Point2D.Double(1, 0));
+		SensorInterval si2 = new SensorInterval(1, line2);
+
+		List<SensorInterval> siList1 = new ArrayList<SensorInterval>();
+		siList1.add(si1);
+
+		List<SensorInterval> siList2 = new ArrayList<SensorInterval>();
+		siList2.add(si2);
+
+		HashMap<Integer, List<SensorInterval>> siMap = new HashMap<Integer, List<SensorInterval>>();
+		siMap.put(0, siList1);
+		siMap.put(1, siList2);
+
+		SensorGroup sg = new SensorGroup(siMap, 0);
+
+		for (int i = 0; i < sg.getConvexHull().size(); i++) {
+
+			System.out.println("hull pt " + sg.getConvexHull().get(i).getX()
+					+ " " + sg.getConvexHull().get(i).getY());
+		}
+
+		System.out.println("size " + sg.getSize() + " centroid "
+				+ sg.getCentrePoint());
 	}
 }

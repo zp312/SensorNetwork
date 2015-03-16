@@ -130,7 +130,7 @@ public class GeneratorMainEntry {
 
 		Random r = new Random();
 
-		int nCases = 10;
+		int nCases = 30;
 
 		int width = 800; // width of canvas
 		int height = 600; // height of canvas

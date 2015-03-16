@@ -1,0 +1,9 @@
+qualitative network
+  shape and size for nodes 
+  distance angle for edge
+  search space
+
+1.add erosion
+2.relative position info for group match
+3.distance
+ 

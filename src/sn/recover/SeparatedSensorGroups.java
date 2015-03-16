@@ -74,11 +74,13 @@ public class SeparatedSensorGroups {
 
 		// find all positive interval groups ignoring groups with single
 		// intervals
-		this.positiveIntervalGroups = findSensorGroups(true, true);
+		this.positiveIntervalGroups = findSensorGroups(this.positiveIntervals,
+				true);
 
 		// find all negative interval groups ignoring groups with single
 		// intervals
-		this.negativeIntervalGroups = findSensorGroups(false, true);
+		this.negativeIntervalGroups = findSensorGroups(this.negativeIntervals,
+				true);
 
 		this.mergablePositiveGroupPairs = this.findMergablePairs(true);
 		this.mergableNegativeGroupPairs = this.findMergablePairs(false);
@@ -121,17 +123,13 @@ public class SeparatedSensorGroups {
 	 *            if true, ignore group with only one snesor interval
 	 * @return
 	 */
-	private List<SensorGroup> findSensorGroups(boolean positive,
+	private List<SensorGroup> findSensorGroups(List<SensorInterval> intervals,
 			boolean ignoreSingleInterval) {
 		// Intervals which has not been assigned to a group
 		List<SensorInterval> unclassifiedIntervals = new ArrayList<SensorInterval>();
-		;
-		if (positive) {
-			unclassifiedIntervals.addAll(this.positiveIntervals);
-		} else {
 
-			unclassifiedIntervals.addAll(this.positiveIntervals);
-		}
+		unclassifiedIntervals.addAll(intervals);
+
 		// Intervals which has been assigned to a group but
 		// their adjacent intervals are not yet searched
 		List<SensorInterval> ongoingIntervals;
@@ -142,13 +140,9 @@ public class SeparatedSensorGroups {
 		// A list of all positive sensor groups for the given data
 		List<SensorGroup> sensorGroups = new ArrayList<SensorGroup>();
 
-		if (positive) {
-			if (this.positiveIntervals.isEmpty())
-				return null;
-		} else {
-			if (this.negativeIntervals.isEmpty())
-				return null;
-		}
+		if (intervals.isEmpty())
+			return sensorGroups;
+
 		int groupID = 0;
 		while (!unclassifiedIntervals.isEmpty()) {
 			intervalGroup = new HashMap<Integer, List<SensorInterval>>();
@@ -650,17 +644,19 @@ public class SeparatedSensorGroups {
 
 			if (drawHull) {
 				List<Point2D> hullPts = curGroup.getConvexHull();
-
-				Path2D hullPath = new Path2D.Double();
-				hullPath.moveTo(hullPts.get(0).getX() + xOffset, hullPts.get(0)
-						.getY() + yOffset);
-				for (Point2D pt : hullPts) {
-					hullPath.lineTo(pt.getX() + xOffset, pt.getY() + yOffset);
+				if (hullPts.size() > 1) {
+					Path2D hullPath = new Path2D.Double();
+					hullPath.moveTo(hullPts.get(0).getX() + xOffset, hullPts
+							.get(0).getY() + yOffset);
+					for (Point2D pt : hullPts) {
+						hullPath.lineTo(pt.getX() + xOffset, pt.getY()
+								+ yOffset);
+					}
+					hullPath.lineTo(hullPts.get(0).getX() + xOffset, hullPts
+							.get(0).getY() + yOffset);
+					hullPath.closePath();
+					g2d.draw(hullPath);
 				}
-				hullPath.lineTo(hullPts.get(0).getX() + xOffset, hullPts.get(0)
-						.getY() + yOffset);
-				hullPath.closePath();
-				g2d.draw(hullPath);
 			}
 			// draw group id
 			// SensorInterval si = siList.get(0);
@@ -753,7 +749,8 @@ public class SeparatedSensorGroups {
 		this.negativeIntervals = negSiList;
 		this.negativeIntervalMap = this
 				.mapIntervalsByID(this.negativeIntervals);
-		this.negativeIntervalGroups = findSensorGroups(false, true);
+		this.negativeIntervalGroups = findSensorGroups(this.negativeIntervals,
+				true);
 		this.mergableNegativeGroupPairs = this.findMergablePairs(false);
 
 	}
@@ -1173,85 +1170,87 @@ public class SeparatedSensorGroups {
 	}
 
 	private List<ExtremePoint2D> getSignificantInflexion(
-			List<ExtremePoint2D> extremePtList, int nPtRequired, StarRelation starRel) {
+			List<ExtremePoint2D> extremePtList, int nPtRequired,
+			StarRelation starRel) {
 		List<ExtremePoint2D> inflexions = new ArrayList<ExtremePoint2D>();
-		
+
 		int[] angleDiffArray = new int[extremePtList.size()];
-		int smallestIndexInInflexions = 0;//record the index of point with smallest angle change in the inflexions list
+		int smallestIndexInInflexions = 0;// record the index of point with
+											// smallest angle change in the
+											// inflexions list
 		int smallestIndexInExtremePts = 0;
-		
-		for(int i = 0; i < extremePtList.size(); i++){
+
+		for (int i = 0; i < extremePtList.size(); i++) {
 			boolean ptAdded = false;
-			ExtremePoint2D adjPt1,adjPt2;//adjacent point1
-			
-			if(i == 0){
-				adjPt1 = extremePtList.get(extremePtList.size()-1);
+			ExtremePoint2D adjPt1, adjPt2;// adjacent point1
+
+			if (i == 0) {
+				adjPt1 = extremePtList.get(extremePtList.size() - 1);
 				adjPt2 = extremePtList.get(i + 1);
 
 			}
-			
-			else if(i == extremePtList.size() - 1){
+
+			else if (i == extremePtList.size() - 1) {
 				adjPt1 = extremePtList.get(i - 1);
 				adjPt2 = extremePtList.get(0);
 			}
-			
-			else{
+
+			else {
 				adjPt1 = extremePtList.get(i - 1);
 				adjPt2 = extremePtList.get(i + 1);
 			}
-			angleDiffArray[i] = extremePtList.get(i).getAngleDiff(adjPt1, adjPt2, starRel); 			
+			angleDiffArray[i] = extremePtList.get(i).getAngleDiff(adjPt1,
+					adjPt2, starRel);
 
-			
-			//update smallest index and append extreme pt if the 
-			//inflexions list is not full
-			if(inflexions.size() < nPtRequired){
+			// update smallest index and append extreme pt if the
+			// inflexions list is not full
+			if (inflexions.size() < nPtRequired) {
 				inflexions.add(extremePtList.get(i));
 				ptAdded = true;
 			}
-			
-			
-			//remove the point with smallest angle diff and append the point with larger diff
-			else{
-				if(angleDiffArray[i] >= angleDiffArray[smallestIndexInExtremePts]){
+
+			// remove the point with smallest angle diff and append the point
+			// with larger diff
+			else {
+				if (angleDiffArray[i] >= angleDiffArray[smallestIndexInExtremePts]) {
 					inflexions.remove(smallestIndexInInflexions);
 					inflexions.add(extremePtList.get(i));
 					ptAdded = true;
 				}
 			}
-			
-			//update smallest index
-			if(ptAdded){
-				int tem = i;//tem index
-				int compIndex = i;//index compares with i
-				for(ExtremePoint2D pt : inflexions){
+
+			// update smallest index
+			if (ptAdded) {
+				int tem = i;// tem index
+				int compIndex = i;// index compares with i
+				for (ExtremePoint2D pt : inflexions) {
 					compIndex = extremePtList.indexOf(pt);
-					if(angleDiffArray[tem] > angleDiffArray[compIndex]){
+					if (angleDiffArray[tem] > angleDiffArray[compIndex]) {
 						tem = compIndex;
 					}
 				}
-				smallestIndexInInflexions = inflexions.indexOf(extremePtList.get(tem));
-				smallestIndexInExtremePts = extremePtList.indexOf(inflexions.get(smallestIndexInInflexions));
+				smallestIndexInInflexions = inflexions.indexOf(extremePtList
+						.get(tem));
+				smallestIndexInExtremePts = extremePtList.indexOf(inflexions
+						.get(smallestIndexInInflexions));
 			}
 		}
-		
-		
-		//test
-		
-		for(int i = 0; i < inflexions.size(); i++){
+
+		// test
+
+		for (int i = 0; i < inflexions.size(); i++) {
 			int index = extremePtList.indexOf(inflexions.get(i));
 			System.out.println("largest diff : " + angleDiffArray[index]);
 		}
-		
+
 		Arrays.sort(angleDiffArray);
-		for(int d : angleDiffArray){
+		for (int d : angleDiffArray) {
 			System.out.println("all diff " + d);
 		}
-		
 
-		
 		return inflexions;
 	}
-	
+
 	/**
 	 * 
 	 * @param shape1
@@ -1266,7 +1265,210 @@ public class SeparatedSensorGroups {
 		return matchedPos;
 	}
 
-	private Double[] optimizeMergedData(Double[] factors, Point2D anchory,
+	/**
+	 * 
+	 */
+	private HashMap<Integer, List<SensorInterval>> getIntervalMapAfterErosion(
+			HashMap<Integer, List<SensorInterval>> intervalMap, double radius) {
+		HashMap<Integer, List<SensorInterval>> erosionIntervalMap = new HashMap<Integer, List<SensorInterval>>();
+
+		for (int k : intervalMap.keySet()) {
+
+			List<SensorInterval> eroatedIntevals = new ArrayList<SensorInterval>();
+
+			for (SensorInterval si : intervalMap.get(k)) {
+				// if si length < 2 * radius, ignore short si
+				if (si.getStart().distance(si.getEnd()) < 2 * radius)
+					continue;
+
+				// ignore bounding interval
+				if (!intervalMap.containsKey(k - 1))
+					continue;
+				if (!intervalMap.containsKey(k + 1))
+					continue;
+
+				boolean startFound = false, endFound = false;
+
+				double startY = si.getStart().getY();
+				double endY = si.getEnd().getY();
+
+				// assume intervals are vertically normalized
+				// deal with small diff between two ends
+				double x = (si.getStart().getX() + si.getEnd().getX()) / 2;
+
+				double eroatedStartY = Double.NaN, eroatedEndY = Double.NaN;
+
+				// start with +radius to ignore bounding
+				for (double y = startY + radius; y < endY - radius; y += 1) {
+
+					// init distance to left and right adjacent interval to 0
+					int nLeftAdj = 1, nRightAdj = 1;
+
+					Point2D centre = new Point2D.Double(x, y);
+
+					double xLeftDis = 0., xRightDis = 0.;
+
+					boolean leftTestPassed = true, rightTestPassed = true;
+
+					// find the left nearest interval with distance to the
+					// circle centre greater than radius
+					while (xLeftDis < radius && leftTestPassed) {
+						//
+						if (!intervalMap.containsKey(k - nLeftAdj)) {
+							if (startFound) {
+								eroatedEndY = y - 1;
+								endFound = true;
+							}
+							leftTestPassed = false;
+							break;
+						}
+
+						// perform erosion, assume intervals are vertically
+						// normalized
+						for (SensorInterval siAdj : intervalMap.get(k
+								- nLeftAdj)) {
+							xLeftDis = siAdj.getInterval().ptLineDist(centre);
+							if (!(siAdj.getStart().getY() < startY)) {
+								Line2D lineSeg = new Line2D.Double(
+										si.getStart(), siAdj.getStart());
+								// part of the circle falls out of the component
+								if (lineSeg.ptLineDist(centre) < radius) {
+									leftTestPassed = false;
+								}
+
+								else {
+									leftTestPassed = true;
+								}
+							}
+
+							else {
+								leftTestPassed = true;
+							}
+
+							if (!(siAdj.getEnd().getY() > endY)) {
+								Line2D lineSeg = new Line2D.Double(si.getEnd(),
+										siAdj.getEnd());
+								// part of the circle falls out of the component
+								if (lineSeg.ptLineDist(centre) < radius) {
+									leftTestPassed = false;
+								}
+
+								else {
+									leftTestPassed = true;
+									break;
+								}
+							}
+
+							else {
+								leftTestPassed = true;
+								break;
+							}
+						}
+
+						nLeftAdj++;
+					}
+
+					// find the right nearest interval with distance to the
+					// circle centre greater than radius
+					while (xRightDis < radius && rightTestPassed
+							&& leftTestPassed) {
+
+						if (!intervalMap.containsKey(k + nRightAdj)) {
+							if (startFound) {
+								eroatedEndY = y - 1;
+								endFound = true;
+							}
+							rightTestPassed = false;
+							break;
+						}
+
+						// perform erosion, assume intervals are vertically
+						// normalized
+						for (SensorInterval siAdj : intervalMap.get(k
+								+ nRightAdj)) {
+							xRightDis = siAdj.getInterval().ptLineDist(centre);
+							if (!(siAdj.getStart().getY() < startY)) {
+								Line2D lineSeg = new Line2D.Double(
+										si.getStart(), siAdj.getStart());
+								// part of the circle falls out of the component
+								if (lineSeg.ptLineDist(centre) < radius) {
+									rightTestPassed = false;
+								}
+
+								else {
+									rightTestPassed = true;
+								}
+							}
+
+							else {
+								rightTestPassed = true;
+							}
+
+							if (!(siAdj.getEnd().getY() > endY)) {
+								Line2D lineSeg = new Line2D.Double(si.getEnd(),
+										siAdj.getEnd());
+								// part of the circle falls out of the component
+								if (lineSeg.ptLineDist(centre) < radius) {
+									rightTestPassed = false;
+								}
+
+								else {
+									rightTestPassed = true;
+									break;
+								}
+							}
+
+							else {
+								rightTestPassed = true;
+								break;
+							}
+						}
+
+						nRightAdj++;
+					}
+
+					if (!startFound && leftTestPassed && rightTestPassed) {
+						eroatedStartY = y;
+						startFound = true;
+					}
+
+					else if (startFound && !endFound
+							&& (!leftTestPassed || !rightTestPassed)) {
+						eroatedEndY = y - 1;
+						endFound = true;
+					}
+
+					// if start point found, end point not found and reached the
+					// end of the interval
+					// set the end of the interval as end of eroated interval
+					else if (startFound && !endFound && (y + 1 > endY - radius)) {
+						eroatedEndY = endY;
+						endFound = true;
+					}
+
+					if (startFound && endFound) {
+
+						Point2D s = new Point2D.Double(x, eroatedStartY);
+						Point2D e = new Point2D.Double(x, eroatedEndY);
+
+						eroatedIntevals.add(new SensorInterval(k, s, e));
+
+						eroatedStartY = Double.NaN;
+						eroatedEndY = Double.NaN;
+
+						startFound = false;
+						endFound = false;
+					}
+
+				}
+			}
+			erosionIntervalMap.put(k, eroatedIntevals);
+		}
+
+		return erosionIntervalMap;
+	}
+
+	private Double[] optimizeInitMatch(Double[] factors, Point2D anchory,
 			List<SensorInterval> posSiList1, List<SensorInterval> posSiList2,
 			List<SensorInterval> negSiList1, List<SensorInterval> negSiList2) {
 		Random r = new Random();
@@ -1773,6 +1975,40 @@ public class SeparatedSensorGroups {
 		showImg(scaledImg, name);
 	}
 
+	/**
+	 * Save interval groups into file
+	 * 
+	 * @throws Exception
+	 */
+	public static void testSaveIntervalGroups(List<SensorGroup> sg, String name)
+			throws Exception {
+		int width = 1000;
+		int height = 1000;
+
+		BufferedImage img = new BufferedImage(width, height,
+				BufferedImage.TYPE_4BYTE_ABGR);
+		Graphics2D g2d = (Graphics2D) img.createGraphics();
+
+		g2d.setBackground(Color.WHITE);
+		g2d.clearRect(0, 0, width, height);
+
+		addSensorGroupsToGraphic(g2d, sg, 100, 200, true);
+
+		// if (showNeg) {
+		// negativeData.addIntervalsToGraphic(g2d,
+		// negativeData.getPositiveIntervals(), false, Color.BLACK);
+		// }
+
+		BufferedImage scaledImg = ShowDebugImage.resize(img, 800, 800);
+		try {
+			ImageIO.write(scaledImg, "png", new File(name));
+			System.out.println("saved matched sensor data image to " + name);
+		} catch (IOException e) {
+			System.err.println("failed to save image " + name);
+			e.printStackTrace();
+		}
+	}
+
 	public static void testDrawIntervals(List<SensorInterval> siList,
 			String name) throws Exception {
 		int width = 1000;
@@ -2035,7 +2271,7 @@ public class SeparatedSensorGroups {
 
 			Double[] factors = factorList.get(minErrIndex);
 
-			factors = ssg1.optimizeMergedData(factors, anchory,
+			factors = ssg1.optimizeInitMatch(factors, anchory,
 					ssg1.getPositiveIntervals(), ssg2.getPositiveIntervals(),
 					ssg1.getNegativeIntervals(), ssg2.getNegativeIntervals());
 
@@ -2180,16 +2416,19 @@ public class SeparatedSensorGroups {
 			}
 
 			StarRelation starRel = new StarRelation(96);
-			
-			//get lists of extreme points represent the convex hull
-			List<ExtremePoint2D> convexShape1 = ssg1.getConvexShape(filteredGroups1);
-			List<ExtremePoint2D> convexShape2 = ssg2.getConvexShape(filteredGroups2);
-			
-			List<ExtremePoint2D> significantShape1 = ssg1.getSignificantInflexion(convexShape1, 4, starRel);
-			
-			List<ExtremePoint2D> significantShape2 = ssg2.getSignificantInflexion(convexShape2, 4, starRel);
-			
-			
+
+			// get lists of extreme points represent the convex hull
+			List<ExtremePoint2D> convexShape1 = ssg1
+					.getConvexShape(filteredGroups1);
+			List<ExtremePoint2D> convexShape2 = ssg2
+					.getConvexShape(filteredGroups2);
+
+			List<ExtremePoint2D> significantShape1 = ssg1
+					.getSignificantInflexion(convexShape1, 6, starRel);
+
+			List<ExtremePoint2D> significantShape2 = ssg2
+					.getSignificantInflexion(convexShape2, 6, starRel);
+
 			String fileName = String.format(
 					"results/test%d-convexShape-%d.png", n, 0);
 
@@ -2199,9 +2438,8 @@ public class SeparatedSensorGroups {
 			fileName = String.format("results/test%d-convexShape-%d.png", n, 1);
 			saveConvexShape(fileName, convexShape2,
 					ssg2.getPositiveIntervalGroups());
-			
-			fileName = String.format(
-					"results/test%d-sigShape-%d.png", n, 0);
+
+			fileName = String.format("results/test%d-sigShape-%d.png", n, 0);
 
 			saveConvexShape(fileName, significantShape1,
 					ssg1.getPositiveIntervalGroups());
@@ -2209,16 +2447,98 @@ public class SeparatedSensorGroups {
 			fileName = String.format("results/test%d-sigShape-%d.png", n, 1);
 			saveConvexShape(fileName, significantShape2,
 					ssg2.getPositiveIntervalGroups());
-			
+
 		}
 
+	}
+
+	// test erosion
+	public static void testErosion() throws Exception {
+		for (int n = 2; n < 41; n++) {
+			String dataFileHeader = String.format(
+					"data/test%d-positiveDataNorm-", n);
+
+			String dataFileName = String.format(dataFileHeader + "%d", 0);
+
+			SensorData sd1 = new SensorData(dataFileName, 800, 600);
+
+			String negativeDataFileHeader = String.format(
+					"data/test%d-negativeDataNorm-", n);
+			String negativeDataFileName = String.format(negativeDataFileHeader
+					+ "%d", 0);
+
+			SensorData negSd1 = new SensorData(negativeDataFileName, 800, 600);
+
+			dataFileName = String.format(dataFileHeader + "%d", 1);
+			negativeDataFileName = String.format(negativeDataFileHeader + "%d",
+					1);
+
+			SensorData sd2 = new SensorData(dataFileName, 800, 600);
+			SensorData negSd2 = new SensorData(negativeDataFileName, 800, 600);
+
+			SeparatedSensorGroups ssg1 = new SeparatedSensorGroups(sd1);
+			ssg1.setNegativeSensorIntervals(negSd1.getPositiveIntervals());
+
+			SeparatedSensorGroups ssg2 = new SeparatedSensorGroups(sd2);
+			ssg2.setNegativeSensorIntervals(negSd2.getPositiveIntervals());
+
+			File dir = new File("results/erosion");
+			if (!dir.exists()) {
+				dir.mkdir();
+			}
+
+			List<SensorGroup> sensorGroups1 = ssg1.getPositiveIntervalGroups();
+			List<SensorInterval> erotatedIntervalsList1 = new ArrayList<SensorInterval>();
+			List<SensorGroup> erotatedSensorGroups1 = new ArrayList<SensorGroup>();
+			for (SensorGroup sg : sensorGroups1) {
+				HashMap<Integer, List<SensorInterval>> erotatedIntervalMap = ssg1
+						.getIntervalMapAfterErosion(sg.getSensorIntervals(), 15);
+				for (int k : erotatedIntervalMap.keySet()) {
+					for (SensorInterval si : erotatedIntervalMap.get(k)) {
+						erotatedIntervalsList1.add(si);
+					}
+				}
+				 erotatedSensorGroups1 = ssg1.findSensorGroups(erotatedIntervalsList1,true);
+			}
+
+			List<SensorGroup> sensorGroups2 = ssg2.getPositiveIntervalGroups();
+			List<SensorInterval> erotatedIntervalsList2 = new ArrayList<SensorInterval>();
+			List<SensorGroup> erotatedSensorGroups2 = new ArrayList<SensorGroup>();
+			for (SensorGroup sg : sensorGroups2) {
+				HashMap<Integer, List<SensorInterval>> erotatedIntervalMap = ssg2
+						.getIntervalMapAfterErosion(sg.getSensorIntervals(), 15);
+				for (int k : erotatedIntervalMap.keySet()) {
+					for (SensorInterval si : erotatedIntervalMap.get(k)) {
+						erotatedIntervalsList2.add(si);
+					}
+				}
+				erotatedSensorGroups2 = ssg2.findSensorGroups(erotatedIntervalsList2,true);
+			}
+
+			String fileName = String.format(
+					"results/erosion/test%d-erosionShape-%d.png", n, 0);
+
+			testSaveIntervalGroups(erotatedSensorGroups1, fileName);
+			fileName = String.format(
+					"results/erosion/test%d-erosionShape-%d.png", n, 1);
+			testSaveIntervalGroups(erotatedSensorGroups2, fileName);
+
+			fileName = String.format(
+					"results/erosion/test%d-originalShape-%d.png", n, 0);
+
+			testSaveIntervalGroups(sensorGroups1, fileName);
+			fileName = String.format(
+					"results/erosion/test%d-originalShape-%d.png", n, 1);
+			testSaveIntervalGroups(sensorGroups2, fileName);
+
+		}
 	}
 
 	public static void main(String[] args) throws Exception {
 		long begintime = System.currentTimeMillis();
 		// testStg1();
-		testShapeMatchStg();
-
+		// testShapeMatchStg();
+		testErosion();
 		long endtime = System.currentTimeMillis();
 		long costTime = (endtime - begintime);
 		System.out.println("time consumed " + costTime + "ms");
