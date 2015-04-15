@@ -23,6 +23,37 @@ import sn.regiondetect.ComplexRegion;
 
 public class GeneratorMainEntry {
 
+	
+	/**
+	 * uniformly sample data point from positive intervals
+	 * 
+	 * @param gap
+	 *            gap between sampled data point in pixel
+	 * @return list of sampled points
+	 */
+	public static List<Point2D> getSampledSensorData(double gap, List<SensorInterval> siList) {
+
+		List<Point2D> pts = new ArrayList<Point2D>();
+
+			for (SensorInterval si : siList) {
+				// caseFileCount = Integer.parseInt(nCase);
+			
+				double x1 = si.getStart().getX();
+				double y1 = si.getStart().getY();
+				double x2 = si.getEnd().getX();
+				double y2 = si.getEnd().getY();
+
+				// System.out.println("x1 " +x1 + " y1 " +y1 + " x2 " +x2 +
+				// " y2 " + y2);
+				// pts.add(interval.getStart());
+				// pts.add(interval.getEnd());
+				
+				pts.addAll(sampleFromInterval(x1, y1, x2, y2, gap));
+			}
+
+		return pts;
+	}
+	
 	/**
 	 * uniformly sample data point from positive intervals
 	 * 
@@ -33,7 +64,7 @@ public class GeneratorMainEntry {
 	public static List<Point2D> getSampledSensorData(double gap, String fileName) {
 
 		List<Point2D> pts = new ArrayList<Point2D>();
-		
+
 		File file = new File(fileName);
 
 		BufferedReader reader = null;
@@ -49,73 +80,12 @@ public class GeneratorMainEntry {
 				double x2 = Double.parseDouble(tokens[3]);
 				double y2 = Double.parseDouble(tokens[4]);
 
-				double KThreshold = 1e-10;
-				//System.out.println("x1 "  +x1 + " y1 "  +y1 + " x2 "  +x2 + " y2 " + y2);
+				// System.out.println("x1 " +x1 + " y1 " +y1 + " x2 " +x2 +
+				// " y2 " + y2);
 				// pts.add(interval.getStart());
 				// pts.add(interval.getEnd());
-				double k = Double.NaN;
-				if (x2 - x1 != 0) {
-					k = (y2 - y1) / (x2 - x1);
-				}
-				//System.out.println("k " + k);
-				while (true) {
-					if (Math.abs(x2 - x1) > KThreshold) {
-						if (k == 0) { // horizontal lines
-							if (x1 <= x2) {
-								if (x1 + gap < x2) {
-									pts.add(new Point2D.Double(x1 + gap, y1));
-									x1 += gap;
-								} else
-									break;
-							} else {
-								if (x2 + gap < x1) {
-									pts.add(new Point2D.Double(x2 + gap, y1));
-									x2 += gap;
-								} else
-									break;
-							}
 
-						} else {
-							double dx = gap / (Math.pow((k * k + 1), 0.5));
-							double dy = k * dx;
-							if (x1 <= x2) {
-								if (x1 + dx < x2) {
-									pts.add(new Point2D.Double((x1 + dx),
-											(y1 + dy)));
-									x1 += dx;
-									y1 += dy;
-									//System.out.println("adjusted x1 "  +x1 + " y1 "  +y1 + " x2 "  +x2 + " y2 " + y2);
-								} else
-									break;
-							} else {
-								if (x2 + dx < x1) {
-									pts.add(new Point2D.Double((x2 + dx),
-											(y2 + dy)));
-									x2 += dx;
-									y2 += dy;
-								} else
-									break;
-							}
-						}
-					} else { // vertical lines
-						if (y1 <= y2) {
-							if (y1 + gap < y2) {
-								pts.add(new Point2D.Double(x1, (y1 + gap)));
-								y1 += gap;
-							}
-
-							else
-								break;
-						} else {
-							if (y2 + gap < y1) {
-								pts.add(new Point2D.Double(x1, (y2 + gap)));
-								y2 += gap;
-							} else
-								break;
-						}
-					}
-				}
-
+				pts.addAll(sampleFromInterval(x1, y1, x2, y2, gap));
 			}
 			reader.close();
 		} catch (IOException e) {
@@ -123,6 +93,83 @@ public class GeneratorMainEntry {
 			System.err.println("read file " + fileName + "failed");
 		}
 
+		return pts;
+	}
+
+	public static List<Point2D> sampleFromInterval(double x1, double y1,
+			double x2, double y2, double gap) {
+
+		double KThreshold = 1e-10;// vertical or horizontal
+		// System.out.println("x1 " +x1 + " y1 " +y1 + " x2 " +x2 + " y2 " +
+		// y2);
+
+
+		List<Point2D> pts = new ArrayList<Point2D>();
+//
+//		pts.add(new Point2D.Double(x1, y1));
+//		pts.add(new Point2D.Double(x2, y2));
+//		
+		double k = Double.NaN;
+		if (x2 - x1 != 0) {
+			k = (y2 - y1) / (x2 - x1);
+		}
+		// System.out.println("k " + k);
+		while (true) {
+			if (Math.abs(x2 - x1) > KThreshold) {
+				if (k == 0) { // horizontal lines
+					if (x1 <= x2) {
+						if (x1 + gap < x2) {
+							pts.add(new Point2D.Double(x1 + gap, y1));
+							x1 += gap;
+						} else
+							break;
+					} else {
+						if (x2 + gap < x1) {
+							pts.add(new Point2D.Double(x2 + gap, y1));
+							x2 += gap;
+						} else
+							break;
+					}
+
+				} else {
+					double dx = gap / (Math.pow((k * k + 1), 0.5));
+					double dy = k * dx;
+					if (x1 <= x2) {
+						if (x1 + dx < x2) {
+							pts.add(new Point2D.Double((x1 + dx), (y1 + dy)));
+							x1 += dx;
+							y1 += dy;
+							// System.out.println("adjusted x1 " +x1 + " y1 "
+							// +y1 + " x2 " +x2 + " y2 " + y2);
+						} else
+							break;
+					} else {
+						if (x2 + dx < x1) {
+							pts.add(new Point2D.Double((x2 + dx), (y2 + dy)));
+							x2 += dx;
+							y2 += dy;
+						} else
+							break;
+					}
+				}
+			} else { // vertical lines
+				if (y1 <= y2) {
+					if (y1 + gap < y2) {
+						pts.add(new Point2D.Double(x1, (y1 + gap)));
+						y1 += gap;
+					}
+
+					else
+						break;
+				} else {
+					if (y2 + gap < y1) {
+						pts.add(new Point2D.Double(x1, (y2 + gap)));
+						y2 += gap;
+					} else
+						break;
+				}
+			}
+		}
 		return pts;
 	}
 
@@ -277,38 +324,37 @@ public class GeneratorMainEntry {
 			ArrayList matList = new ArrayList();
 
 			double[] lineAngle = new double[lineSet];// angle of lines
-//			double scale = 1./1.2;
-//			lineGap = 25;
+			// double scale = 1./1.2;
+			// lineGap = 25;
 			for (int n = 0; n < lineSet; n++) {
-//				if(n == 2)
-//					lineGap = 20;
-//				if(n == 4)
-//					lineGap = 15;
-//				if(n == 6)
-//					lineGap = 10;
-//				if(n ==8)
-//					lineGap = 5;
-//
-//				if(n%2 ==0)
-//					scale = 1;
-//				else
-//					scale = 1./1.2;
-				//scale = scale/1.2;
-			/***use different gap for each set****/
-				//lineGap += 10;
-			/*************************************/
-//				if (r.nextBoolean())
-//					lineAngle[n] = r.nextDouble() * Math.PI / 2.1;
-//				else
-//					lineAngle[n] = r.nextDouble() * Math.PI * (1 - 1 / 1.9)
-//							+ Math.PI / 1.9;
-				
-				if(n%2 == 0)
-					lineAngle[n] = Math.PI/16;
+				// if(n == 2)
+				// lineGap = 20;
+				// if(n == 4)
+				// lineGap = 15;
+				// if(n == 6)
+				// lineGap = 10;
+				// if(n ==8)
+				// lineGap = 5;
+				//
+				// if(n%2 ==0)
+				// scale = 1;
+				// else
+				// scale = 1./1.2;
+				// scale = scale/1.2;
+				/*** use different gap for each set ****/
+				// lineGap += 10;
+				/*************************************/
+				// if (r.nextBoolean())
+				// lineAngle[n] = r.nextDouble() * Math.PI / 2.1;
+				// else
+				// lineAngle[n] = r.nextDouble() * Math.PI * (1 - 1 / 1.9)
+				// + Math.PI / 1.9;
+
+				if (n % 2 == 0)
+					lineAngle[n] = Math.PI / 16;
 				else
-					lineAngle[n] = Math.PI*9/16;
-				
-				
+					lineAngle[n] = Math.PI * 9 / 16;
+
 				d = new SensorData(complexRegion, lineGap, lineAngle[n],
 						complexRegion.getWidth(), complexRegion.getHeight());
 				fileName = String.format(fileHead + "-positiveInterval-%d.png",
@@ -342,19 +388,21 @@ public class GeneratorMainEntry {
 						+ "-positiveDataNorm-%d", n);
 				negativeFileName = String.format(fileHead
 						+ "-negativeDataNorm-%d", n);
-				d.writeIntervalsToFile(positiveFileName, negativeFileName, true, 1/*scale*/);
+				d.writeIntervalsToFile(positiveFileName, negativeFileName,
+						true, 1/* scale */);
 
-				List<Point2D> samplePts = getSampledSensorData(5,positiveFileName);
+				List<Point2D> samplePts = getSampledSensorData(5,
+						positiveFileName);
 
-				
-				System.out.println("================Sampled Data ==================");
+				System.out
+						.println("================Sampled Data ==================");
 				// save sampled pts to .mat file
 				double[] pts = new double[samplePts.size() * 2];
 				for (int j = 0; j < samplePts.size(); j++) {
 					Point2D pt = samplePts.get(j);
 					pts[j] = pt.getX();
 					pts[j + samplePts.size()] = pt.getY();
-					//System.out.println("x " +  pt.getX() + " y "  + pt.getY());
+					// System.out.println("x " + pt.getX() + " y " + pt.getY());
 				}
 				String dataName = String.format("X%d", n);
 
@@ -363,8 +411,9 @@ public class GeneratorMainEntry {
 
 				matList.add(mlDouble);
 			}
-			
-			fileName = String.format("CPD2/data/test%d-sample.mat", caseFileCount);
+
+			fileName = String.format("CPD2/data/test%d-sample.mat",
+					caseFileCount);
 			new MatFileWriter(fileName, matList);
 
 			fileName = String.format(fileHead + "-positiveInterval-all.png");

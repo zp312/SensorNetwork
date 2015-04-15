@@ -192,9 +192,9 @@ public class SensorData {
 					double _sensorAngle = sensorAngle;
 					double _angle = angle;
  					if(sensorAngle < 0)
- 						_sensorAngle += Math.PI;
+ 						_sensorAngle += 2 * Math.PI;
  					if(angle < 0)
- 						_angle += Math.PI;
+ 						_angle += 2 * Math.PI;
 					assert (Math.abs(_sensorAngle - _angle) < 0.05) : "In file " + sensorFileName
 							+ ", positive intervals not parallel! diff is " + Math.abs(sensorAngle - angle);
 				}

@@ -22,17 +22,17 @@ public class SensorInterval {
 		sensorID = id;
 		interval = new Line2D.Double(s, e);
 	}
-	
+
 	/**
 	 * constructor
+	 * 
 	 * @param id
-	 * @param line 
+	 * @param line
 	 */
 	public SensorInterval(int id, Line2D line) {
 		sensorID = id;
 		interval = line;
 	}
-
 
 	/**
 	 * constructor from parsing a string
@@ -79,6 +79,31 @@ public class SensorInterval {
 	 * 
 	 * @return double angle
 	 */
+//	public double getAngle() {
+//		double y1 = interval.getP1().getY();
+//		double x1 = interval.getP1().getX();
+//		double y2 = interval.getP2().getY();
+//		double x2 = interval.getP2().getX();
+//
+//		double angle;
+//		if (x1 != x2) {
+//			angle = Math.atan(((y2 - y1)/(x2 - x1)));
+//			if (x1 > x2)
+//				// due to the different coordinate system
+//				angle = 1.5 * Math.PI + angle;
+//			else if (x1 < x2)
+//				// due to the different coordinate system
+//				angle = 0.5 * Math.PI + angle;
+//		}
+//		else{
+//			if (y1 <= y2)
+//				angle = 0;
+//			else
+//				angle = Math.PI;
+//		}
+//		return angle;
+//	}
+	
 	public double getAngle() {
 		double y1 = interval.getP1().getY();
 		double x1 = interval.getP1().getX();
@@ -88,8 +113,8 @@ public class SensorInterval {
 	}
 
 	/**
-	 * Get the start and end point of the full interval from the function 
-	 * y = w0 + w1*x where w0 = (x1*y2-x2*y1)/(x1-x2) w1 = (y1-y2)/(x1-x2)
+	 * Get the start and end point of the full interval from the function y = w0
+	 * + w1*x where w0 = (x1*y2-x2*y1)/(x1-x2) w1 = (y1-y2)/(x1-x2)
 	 * 
 	 * @return Line2D intervalLine
 	 */
@@ -127,7 +152,7 @@ public class SensorInterval {
 
 			// if yStart < 0, then yEnd must be greater than 0
 			// to ensure part of the interval is in the canvas
-			//assert (yEnd > 0) : "interval out of bound";
+			// assert (yEnd > 0) : "interval out of bound";
 
 			if (yEnd > height) {
 				yEnd = height;
@@ -144,7 +169,7 @@ public class SensorInterval {
 
 			// if yStart > height, then yEnd must be smaller than 0
 			// to ensure part of the interval is in the canvas
-			//assert (yEnd < height) : "interval out of bound";
+			// assert (yEnd < height) : "interval out of bound";
 
 			if (yEnd < 0) {
 				yEnd = 0;
@@ -155,12 +180,12 @@ public class SensorInterval {
 		else {
 			xEnd = width;
 			yEnd = w0 + w1 * xEnd;
-			
+
 			if (yEnd > height) {
 				yEnd = height;
 				xEnd = (yEnd - w0) / w1;
 			}
-			
+
 			else if (yEnd < 0) {
 				yEnd = 0;
 				xEnd = (yEnd - w0) / w1;

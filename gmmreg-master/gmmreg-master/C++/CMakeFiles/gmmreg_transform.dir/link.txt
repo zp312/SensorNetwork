@@ -1,0 +1,1 @@
+/usr/bin/c++       CMakeFiles/gmmreg_transform.dir/gmmreg_transform.o CMakeFiles/gmmreg_transform.dir/gmmreg_utils.o  -o gmmreg_transform -rdynamic -lvnl -lvnl_algo -lvcl -lm libport_ini.a -lvnl -lvcl -lnetlib -lv3p_netlib -lm 

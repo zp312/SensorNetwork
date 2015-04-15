@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/media/OS/ANU/PhD/2014/codes/RegionGenerator/SensorNetworkTestCaseGenerator/gmmreg-master/gmmreg-master/C++/port_ini.c
+stdio.h
+-
+stdlib.h
+-
+string.h
+-
+ctype.h
+-
+port_ini.h
+/media/OS/ANU/PhD/2014/codes/RegionGenerator/SensorNetworkTestCaseGenerator/gmmreg-master/gmmreg-master/C++/port_ini.h
+
+/media/OS/ANU/PhD/2014/codes/RegionGenerator/SensorNetworkTestCaseGenerator/gmmreg-master/gmmreg-master/C++/port_ini.h
+string.h
+-
+stdio.h
+-
+
