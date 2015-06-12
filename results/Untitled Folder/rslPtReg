@@ -1,0 +1,56 @@
+Gap = 25
+
+err  0.4634754634340283
+angle diff  1.5475002074742363
+scaleTruthDiff  0.0
+Scale diff for Correct  0.0
+Scale diff for wrong 0.0
+Angle diff for Correct  0.0
+Angle diff for wrong 0.0
+Err Correct  0.07847857217052741
+Err wrong 0.5973874256126374
+Err Correct count 24
+Err wrong count69
+time consumed 140717ms
+
+Gap = 20
+err  0.49270315330691095
+angle diff  1.6242918499208892
+scaleTruthDiff  0.0
+Scale diff for Correct  0.0
+Scale diff for wrong 0.0
+Angle diff for Correct  0.0
+Angle diff for wrong 0.0
+Err Correct  0.06361168903900753
+Err wrong 0.6336903487092221
+Err Correct count 23
+Err wrong count70
+time consumed 207758ms
+
+
+Gap = 15
+err  0.4806190216109338
+angle diff  1.6185636123152847
+scaleTruthDiff  0.0
+Scale diff for Correct  0.0
+Scale diff for wrong 0.0
+Angle diff for Correct  0.0
+Angle diff for wrong 0.0
+Err Correct  0.07537311999832923
+Err wrong 0.627981167651881
+Err Correct count 24
+Err wrong count66
+time consumed 361187ms
+
+
+\begin{tabular}{lllll}
+\toprule
+Sensor Gap (pixel) & 25 &20&15&5 \\ \otoprule
+Mismatch (\%)&46.35&49.27&48.06&48.95\\ \midrule
+Angle Diff (radian)& 0.78&0.85&0.76&0.78\\ \midrule
+#Correct Matches& 24&23&24&24\\ \midrule
+Runtime (ms)&60832&83273&152179&1077685\\ \bottomrule
+\end{tabular}  
+
+
+

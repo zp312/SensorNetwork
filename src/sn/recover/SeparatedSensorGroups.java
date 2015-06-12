@@ -31,6 +31,7 @@ import javax.imageio.ImageIO;
 import sn.debug.ShowDebugImage;
 import sn.util.GrahamScan;
 import sn.util.StarRelation;
+import sn.util.Utils;
 
 import sn.demo.GeneratorMainEntry;
 
@@ -764,6 +765,8 @@ public class SeparatedSensorGroups {
 			SeparatedSensorGroups ssg) {
 		int n = this.mergablePositiveGroupPairs.size();
 
+		int topN = 20;// how many merges to be recorded
+
 		List<List<HashMap<Integer, Integer>>> singleOrDualMerges = new ArrayList<List<HashMap<Integer, Integer>>>();
 		List<List<HashMap<Integer, Integer>>> bestMerges = new ArrayList<List<HashMap<Integer, Integer>>>();
 		List<Double> minErrors = new ArrayList<Double>();
@@ -875,7 +878,7 @@ public class SeparatedSensorGroups {
 				}
 
 				else {
-					if (minErrors.size() < 5) {
+					if (minErrors.size() < topN) {
 						minErrors.add(diff);
 						bestMerges.add(goodMerges);
 						mergedComponentsMaps.add(mergedComponent);
@@ -889,7 +892,7 @@ public class SeparatedSensorGroups {
 							break;
 						}
 					}
-					if (minErrors.size() > 5) {
+					if (minErrors.size() > topN) {
 						minErrors.remove(minErrors.size() - 1);
 						bestMerges.remove(bestMerges.size() - 1);
 						mergedComponentsMaps.remove(mergedComponent.size() - 1);
@@ -929,8 +932,8 @@ public class SeparatedSensorGroups {
 	 * @return List<{rotation(radian),scale,translationX,translationY}>
 	 */
 	private List<Double[]> getInitialFactors(
-			List<List<HashMap<Integer, SensorGroup>>> mergedComponentsMaps,SeparatedSensorGroups ssg2,
-			Point2D anchory) {
+			List<List<HashMap<Integer, SensorGroup>>> mergedComponentsMaps,
+			SeparatedSensorGroups ssg2, Point2D anchory) {
 		List<Double[]> factorList = new ArrayList<Double[]>();
 
 		for (int i = 0; i < mergedComponentsMaps.size(); i++) {
@@ -955,7 +958,7 @@ public class SeparatedSensorGroups {
 			double translationY = Double.NaN;
 
 			rotationAngle = this.getInitialRotationAngle(sgList1, sgList2);
-			//scale = this.getInitialScale(sgList1, sgList2);
+			// scale = this.getInitialScale(sgList1, sgList2);
 			scale = this.getInitialScale(ssg2);
 			double[] translation = this.getInitialTranslation(sgList1, sgList2,
 					scale, rotationAngle, anchory);
@@ -1108,7 +1111,7 @@ public class SeparatedSensorGroups {
 
 		return scale;
 	}
-	
+
 	private double getInitialScale(SeparatedSensorGroups ssg2) {
 		double scale = 1.;
 
@@ -1692,6 +1695,16 @@ public class SeparatedSensorGroups {
 		Random r = new Random();
 		int[] searchDirection = this.resetSearch();
 
+		double minAngleChange = 0.002;
+		double angleUnitChange = 0.002;
+		double angleChangeEnlargeRate = 0.001;
+		double maxAngleChange = 0.1;
+
+		double minScaleChange = 0.01;
+		double scaleUnitChange = 0.01;
+		double scaleChangeEnlargeRate = 0.002;
+		double maxScaleChange = 0.1;
+
 		double err = getMatchError(posSiList1, negSiList1, posSiList2,
 				negSiList2, factors, anchory);
 
@@ -1714,9 +1727,16 @@ public class SeparatedSensorGroups {
 				}
 			}
 			// System.out.println("opting " + nZeros);
-			if (!hasZero)
-				break;
-
+			if (!hasZero) {
+				if (angleUnitChange < maxAngleChange
+						&& scaleUnitChange < maxScaleChange) {
+					angleUnitChange += angleChangeEnlargeRate;
+					scaleUnitChange += scaleChangeEnlargeRate;
+					searchDirection = this.resetSearch();
+					nZeros = 8;
+				} else
+					break;
+			}
 			int searchType = r.nextInt(nZeros);
 			int curType = -1;
 			for (int i = 0; i < searchDirection.length; i++) {
@@ -1736,7 +1756,7 @@ public class SeparatedSensorGroups {
 				temErr = err;
 				double originalScale = factors[1];
 				while (temErr == err) {
-					factors[1] -= 0.01;
+					factors[1] -= scaleUnitChange;
 					temErr = getMatchError(posSiList1, negSiList1, posSiList2,
 							negSiList2, factors, anchory);
 
@@ -1749,6 +1769,8 @@ public class SeparatedSensorGroups {
 					if (temErr < err) {
 						searchDirection = this.resetSearch();
 						err = temErr;
+						angleUnitChange = minAngleChange;
+						scaleUnitChange = minScaleChange;
 						break;
 					} else if (temErr > err) {
 						searchDirection[0] = 1;
@@ -1763,7 +1785,7 @@ public class SeparatedSensorGroups {
 				temErr = err;
 				double originalScale = factors[1];
 				while (temErr == err) {
-					factors[1] += 0.01;
+					factors[1] += scaleUnitChange;
 					temErr = getMatchError(posSiList1, negSiList1, posSiList2,
 							negSiList2, factors, anchory);
 
@@ -1776,6 +1798,8 @@ public class SeparatedSensorGroups {
 					if (temErr < err) {
 						searchDirection = this.resetSearch();
 						err = temErr;
+						angleUnitChange = minAngleChange;
+						scaleUnitChange = minScaleChange;
 						break;
 					} else if (temErr > err) {
 						searchDirection[1] = 1;
@@ -1790,7 +1814,7 @@ public class SeparatedSensorGroups {
 				temErr = err;
 				double originalRotate = factors[0];
 				while (temErr == err) {
-					factors[0] -= 0.01;
+					factors[0] -= angleUnitChange;
 					temErr = getMatchError(posSiList1, negSiList1, posSiList2,
 							negSiList2, factors, anchory);
 
@@ -1803,6 +1827,8 @@ public class SeparatedSensorGroups {
 					if (temErr < err) {
 						searchDirection = this.resetSearch();
 						err = temErr;
+						angleUnitChange = minAngleChange;
+						scaleUnitChange = minScaleChange;
 						break;
 					} else if (temErr > err) {
 						searchDirection[2] = 1;
@@ -1817,7 +1843,7 @@ public class SeparatedSensorGroups {
 				temErr = err;
 				double originalRotate = factors[0];
 				while (temErr == err) {
-					factors[0] += 0.01;
+					factors[0] += angleUnitChange;
 					temErr = getMatchError(posSiList1, negSiList1, posSiList2,
 							negSiList2, factors, anchory);
 
@@ -1830,6 +1856,8 @@ public class SeparatedSensorGroups {
 					if (temErr < err) {
 						searchDirection = this.resetSearch();
 						err = temErr;
+						angleUnitChange = minAngleChange;
+						scaleUnitChange = minScaleChange;
 						break;
 					} else if (temErr > err) {
 						searchDirection[3] = 1;
@@ -1857,6 +1885,8 @@ public class SeparatedSensorGroups {
 					if (temErr < err) {
 						searchDirection = this.resetSearch();
 						err = temErr;
+						angleUnitChange = minAngleChange;
+						scaleUnitChange = minScaleChange;
 						break;
 					} else if (temErr > err) {
 						searchDirection[4] = 1;
@@ -1884,6 +1914,8 @@ public class SeparatedSensorGroups {
 					if (temErr < err) {
 						searchDirection = this.resetSearch();
 						err = temErr;
+						angleUnitChange = minAngleChange;
+						scaleUnitChange = minScaleChange;
 						break;
 					} else if (temErr > err) {
 						searchDirection[5] = 1;
@@ -1911,6 +1943,8 @@ public class SeparatedSensorGroups {
 					if (temErr < err) {
 						searchDirection = this.resetSearch();
 						err = temErr;
+						angleUnitChange = minAngleChange;
+						scaleUnitChange = minScaleChange;
 						break;
 					} else if (temErr > err) {
 						searchDirection[6] = 1;
@@ -1938,6 +1972,8 @@ public class SeparatedSensorGroups {
 					if (temErr < err) {
 						searchDirection = this.resetSearch();
 						err = temErr;
+						angleUnitChange = minAngleChange;
+						scaleUnitChange = minScaleChange;
 						break;
 					} else if (temErr > err) {
 						searchDirection[7] = 1;
@@ -1950,6 +1986,303 @@ public class SeparatedSensorGroups {
 		return factors;
 	}
 
+	private Double[] optimizeMatchNoScale(Double[] factors, Point2D anchory,
+			List<SensorInterval> posSiList1, List<SensorInterval> posSiList2,
+			List<SensorInterval> negSiList1, List<SensorInterval> negSiList2) {
+		Random r = new Random();
+		int[] searchDirection = this.resetSearch();
+
+		double minAngleChange = 0.002;
+		double angleUnitChange = 0.002;
+		double angleChangeEnlargeRate = 0.001;
+		double maxAngleChange = 0.1;
+
+		double minScaleChange = 0.0;
+		double scaleUnitChange = 0.0;
+		double scaleChangeEnlargeRate = 0.00;
+		double maxScaleChange = 0;
+
+		double err = getMatchError(posSiList1, negSiList1, posSiList2,
+				negSiList2, factors, anchory);
+
+		if (Double.isNaN(err)) {
+			System.err
+					.println("no intersections found, please check if two measurements are parallel");
+			return factors;
+		}
+
+		double temErr = err;
+		while (true) {
+
+			boolean hasZero = false;
+
+			int nZeros = 0;
+			for (int i = 0; i < searchDirection.length; i++) {
+				if (searchDirection[i] == 0) {
+					hasZero = true;
+					nZeros++;
+				}
+			}
+			// System.out.println("opting " + nZeros);
+			if (!hasZero) {
+				if (angleUnitChange < maxAngleChange
+						&& scaleUnitChange < maxScaleChange) {
+					angleUnitChange += angleChangeEnlargeRate;
+					scaleUnitChange += scaleChangeEnlargeRate;
+					searchDirection = this.resetSearch();
+					nZeros = 8;
+				} else
+					break;
+			}
+			int searchType = r.nextInt(nZeros);
+			int curType = -1;
+			for (int i = 0; i < searchDirection.length; i++) {
+				if (searchDirection[i] == 0) {
+					curType++;
+					if (curType == searchType) {
+						searchType = i;
+						break;
+					}
+				}
+			}
+
+			// System.out.println("opt " + searchType);
+
+			// shrink
+			if (searchType == 0 && searchDirection[0] != 1) {
+				temErr = err;
+				double originalScale = factors[1];
+				while (temErr == err) {
+					factors[1] -= scaleUnitChange;
+					temErr = getMatchError(posSiList1, negSiList1, posSiList2,
+							negSiList2, factors, anchory);
+
+					if (Double.isNaN(temErr)) {
+						System.err
+								.println("no intersections found, please check if two measurements are parallel");
+						return factors;
+					}
+
+					if (temErr < err) {
+						searchDirection = this.resetSearch();
+						err = temErr;
+						angleUnitChange = minAngleChange;
+						scaleUnitChange = minScaleChange;
+						break;
+					} else if (temErr > err) {
+						searchDirection[0] = 1;
+						factors[1] = originalScale;
+						break;
+					}
+				}
+			}
+
+			// enlarge
+			else if (searchType == 1 && searchDirection[1] != 1) {
+				temErr = err;
+				double originalScale = factors[1];
+				while (temErr == err) {
+					factors[1] += scaleUnitChange;
+					temErr = getMatchError(posSiList1, negSiList1, posSiList2,
+							negSiList2, factors, anchory);
+
+					if (Double.isNaN(temErr)) {
+						System.err
+								.println("no intersections found, please check if two measurements are parallel");
+						return factors;
+					}
+
+					if (temErr < err) {
+						searchDirection = this.resetSearch();
+						err = temErr;
+						angleUnitChange = minAngleChange;
+						scaleUnitChange = minScaleChange;
+						break;
+					} else if (temErr > err) {
+						searchDirection[1] = 1;
+						factors[1] = originalScale;
+						break;
+					}
+				}
+			}
+
+			// rotate anti-clockwise
+			else if (searchType == 2 && searchDirection[2] != 1) {
+				temErr = err;
+				double originalRotate = factors[0];
+				while (temErr == err) {
+					factors[0] -= angleUnitChange;
+					temErr = getMatchError(posSiList1, negSiList1, posSiList2,
+							negSiList2, factors, anchory);
+
+					if (Double.isNaN(temErr)) {
+						System.err
+								.println("no intersections found, please check if two measurements are parallel");
+						return factors;
+					}
+
+					if (temErr < err) {
+						searchDirection = this.resetSearch();
+						err = temErr;
+						angleUnitChange = minAngleChange;
+						scaleUnitChange = minScaleChange;
+						break;
+					} else if (temErr > err) {
+						searchDirection[2] = 1;
+						factors[0] = originalRotate;
+						break;
+					}
+				}
+			}
+
+			// rotate clockwise
+			else if (searchType == 3 && searchDirection[3] != 1) {
+				temErr = err;
+				double originalRotate = factors[0];
+				while (temErr == err) {
+					factors[0] += angleUnitChange;
+					temErr = getMatchError(posSiList1, negSiList1, posSiList2,
+							negSiList2, factors, anchory);
+
+					if (Double.isNaN(temErr)) {
+						System.err
+								.println("no intersections found, please check if two measurements are parallel");
+						return factors;
+					}
+
+					if (temErr < err) {
+						searchDirection = this.resetSearch();
+						err = temErr;
+						angleUnitChange = minAngleChange;
+						scaleUnitChange = minScaleChange;
+						break;
+					} else if (temErr > err) {
+						searchDirection[3] = 1;
+						factors[0] = originalRotate;
+						break;
+					}
+				}
+			}
+
+			// translate left
+			else if (searchType == 4 && searchDirection[4] != 1) {// up
+				temErr = err;
+				double originalTranslateX = factors[2];
+				while (temErr == err) {
+					factors[2] -= 1;
+					temErr = getMatchError(posSiList1, negSiList1, posSiList2,
+							negSiList2, factors, anchory);
+
+					if (Double.isNaN(temErr)) {
+						System.err
+								.println("no intersections found, please check if two measurements are parallel");
+						return factors;
+					}
+
+					if (temErr < err) {
+						searchDirection = this.resetSearch();
+						err = temErr;
+						angleUnitChange = minAngleChange;
+						scaleUnitChange = minScaleChange;
+						break;
+					} else if (temErr > err) {
+						searchDirection[4] = 1;
+						factors[2] = originalTranslateX;
+						break;
+					}
+				}
+			}
+
+			// translate right
+			else if (searchType == 5 && searchDirection[5] != 1) {// down
+				temErr = err;
+				double originalTranslateX = factors[2];
+				while (temErr == err) {
+					factors[2] += 1;
+					temErr = getMatchError(posSiList1, negSiList1, posSiList2,
+							negSiList2, factors, anchory);
+
+					if (Double.isNaN(temErr)) {
+						System.err
+								.println("no intersections found, please check if two measurements are parallel");
+						return factors;
+					}
+
+					if (temErr < err) {
+						searchDirection = this.resetSearch();
+						err = temErr;
+						angleUnitChange = minAngleChange;
+						scaleUnitChange = minScaleChange;
+						break;
+					} else if (temErr > err) {
+						searchDirection[5] = 1;
+						factors[2] = originalTranslateX;
+						break;
+					}
+				}
+			}
+
+			// translate up
+			else if (searchType == 6 && searchDirection[6] != 1) {// left
+				temErr = err;
+				double originalTranslateY = factors[3];
+				while (temErr == err) {
+					factors[3] -= 1;
+					temErr = getMatchError(posSiList1, negSiList1, posSiList2,
+							negSiList2, factors, anchory);
+
+					if (Double.isNaN(temErr)) {
+						System.err
+								.println("no intersections found, please check if two measurements are parallel");
+						return factors;
+					}
+
+					if (temErr < err) {
+						searchDirection = this.resetSearch();
+						err = temErr;
+						angleUnitChange = minAngleChange;
+						scaleUnitChange = minScaleChange;
+						break;
+					} else if (temErr > err) {
+						searchDirection[6] = 1;
+						factors[3] = originalTranslateY;
+						break;
+					}
+				}
+			}
+
+			// translate down
+			else if (searchType == 7 && searchDirection[7] != 1) {// right
+				temErr = err;
+				double originalTranslateY = factors[3];
+				while (temErr == err) {
+					factors[3] += 1;
+					temErr = getMatchError(posSiList1, negSiList1, posSiList2,
+							negSiList2, factors, anchory);
+
+					if (Double.isNaN(temErr)) {
+						System.err
+								.println("no intersections found, please check if two measurements are parallel");
+						return factors;
+					}
+
+					if (temErr < err) {
+						searchDirection = this.resetSearch();
+						err = temErr;
+						angleUnitChange = minAngleChange;
+						scaleUnitChange = minScaleChange;
+						break;
+					} else if (temErr > err) {
+						searchDirection[7] = 1;
+						factors[3] = originalTranslateY;
+						break;
+					}
+				}
+			}
+		}
+		return factors;
+	}
+	
 	private int[] resetSearch() {
 		int[] searchDirection = new int[8];
 
@@ -2150,17 +2483,53 @@ public class SeparatedSensorGroups {
 
 		AffineTransform rotate = new AffineTransform();
 		rotate.rotate(rotationAngle, anchory.getX(), anchory.getY());
+
+		// System.out.println("original " + pt1.getX() + " " + pt1.getY());
+
 		pt1 = rotate.transform(si.getStart(), null);
 		pt2 = rotate.transform(si.getEnd(), null);
 		pt1.setLocation(pt1.getX() * scale, pt1.getY() * scale);
 		pt2.setLocation(pt2.getX() * scale, pt2.getY() * scale);
+
+		// System.out.println("after rotate " + pt1.getX() + " " + pt1.getY());
+
 		pt1.setLocation(pt1.getX() + translationX, pt1.getY() + translationY);
 		pt2.setLocation(pt2.getX() + translationX, pt2.getY() + translationY);
+		// System.out.println("after translate " + pt1.getX() + " " +
+		// pt1.getY());
 
 		SensorInterval siTransformed = new SensorInterval(si.getSensorID(),
 				pt1, pt2);
 
 		return siTransformed;
+	}
+
+	public double getMatchError(List<SensorInterval> positiveIntervals1,
+			List<SensorInterval> negativeIntervals1,
+			List<SensorInterval> positiveIntervals2,
+			List<SensorInterval> negativeIntervals2) {
+		double error = 0;
+
+		int nPositiveIntersections = getIntersections(positiveIntervals1,
+				positiveIntervals2).size();
+		int nPosiNegaIntersections = getIntersections(positiveIntervals1,
+				negativeIntervals2).size();
+		int nNegaPosiIntersections = getIntersections(negativeIntervals1,
+				positiveIntervals2).size();
+
+		error = ((double) nPosiNegaIntersections + (double) nNegaPosiIntersections)
+				/ (double) ((double) nPosiNegaIntersections
+						+ (double) nNegaPosiIntersections + (double) nPositiveIntersections);
+
+		// System.out.println("nPositiveIntersections " + nPositiveIntersections
+		// + " nPosiNegaIntersections " + nPosiNegaIntersections
+		// + " nNegaPosiIntersections " + nNegaPosiIntersections
+		// + " error " + error);
+
+		// optimizeMergedData();
+
+		return error;
+
 	}
 
 	public double getMatchError(List<SensorInterval> positiveIntervals1,
@@ -2195,10 +2564,10 @@ public class SeparatedSensorGroups {
 				/ (double) ((double) nPosiNegaIntersections
 						+ (double) nNegaPosiIntersections + (double) nPositiveIntersections);
 
-		System.out.println("nPositiveIntersections " + nPositiveIntersections
-				+ " nPosiNegaIntersections " + nPosiNegaIntersections
-				+ " nNegaPosiIntersections " + nNegaPosiIntersections
-				+ " error " + error);
+		// System.out.println("nPositiveIntersections " + nPositiveIntersections
+		// + " nPosiNegaIntersections " + nPosiNegaIntersections
+		// + " nNegaPosiIntersections " + nNegaPosiIntersections
+		// + " error " + error);
 
 		// optimizeMergedData();
 
@@ -2468,30 +2837,48 @@ public class SeparatedSensorGroups {
 	 */
 	public static void testStg1() throws Exception {
 
+		int dataSetIndex = 0;
+		int dataIndex1 = 0;
+		int dataIndex2 = 1;
+
 		int totalNComponents = 0;
 		double angleDiff = 0;
 		double scaleTruthDiff = 0;
 
+		double errThreshold = 0.3;
+
 		double err = 0.;
 
+		double errCorrect = 0.;
+		double scaleDiffCorrect = 0.;
+		double angleDiffCorrect = 0.;
+		double scaleDiffWrong = 0.;
+		double angleDiffWrong = 0.;
+
+		int correctCount = 0;
+		double errWrong = 0.;
+		int wrongCount = 0;
+
 		for (int n = 222; n < 323; n++) {
+			// for (int n = 263; n < 264; n++) {
 			String dataFileHeader = String.format(
 					"data_ijcai_paper/test%d-positiveDataNorm-", n);
 
-			String dataFileName = String.format(dataFileHeader + "%d", 8);
+			String dataFileName = String.format(dataFileHeader + "%d",
+					dataIndex1);
 
 			SensorData sd1 = new SensorData(dataFileName, 800, 600);
 
 			String negativeDataFileHeader = String.format(
 					"data_ijcai_paper/test%d-negativeDataNorm-", n);
 			String negativeDataFileName = String.format(negativeDataFileHeader
-					+ "%d", 8);
+					+ "%d", dataIndex1);
 
 			SensorData negSd1 = new SensorData(negativeDataFileName, 800, 600);
 
-			dataFileName = String.format(dataFileHeader + "%d", 9);
+			dataFileName = String.format(dataFileHeader + "%d", dataIndex2);
 			negativeDataFileName = String.format(negativeDataFileHeader + "%d",
-					9);
+					dataIndex2);
 
 			SensorData sd2 = new SensorData(dataFileName, 800, 600);
 			SensorData negSd2 = new SensorData(negativeDataFileName, 800, 600);
@@ -2507,7 +2894,7 @@ public class SeparatedSensorGroups {
 			Point2D anchory = ssg2.positiveIntervalGroupAll.getCentrePoint();
 
 			List<Double[]> factorList = ssg1.getInitialFactors(
-					mergedComponentsMaps,ssg2, anchory);
+					mergedComponentsMaps, ssg2, anchory);
 
 			File dir = new File("results");
 			if (!dir.exists()) {
@@ -2544,13 +2931,15 @@ public class SeparatedSensorGroups {
 
 				// System.out.println("Error is " + matchErrorArray[i]);
 
-//				saveMatchedPicture(fileName, sgList1, sgList2,
-//						factorList.get(i), anchory);
+				// saveMatchedPicture(fileName, sgList1, sgList2,
+				// factorList.get(i), anchory);
 			}
 			if (factorList.size() < 1 || minErrIndex == -1)
 				continue;
 
 			Double[] factors = factorList.get(minErrIndex);
+
+			factorList.remove(minErrIndex);// remove evaluated factors
 
 			factors = ssg1.optimizeInitMatch(factors, anchory,
 					ssg1.getPositiveIntervals(), ssg2.getPositiveIntervals(),
@@ -2582,11 +2971,13 @@ public class SeparatedSensorGroups {
 					.findConnectedIntervals(ssg1.getNegativeIntervals(),
 							transformedNegativeSiList);
 			// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-			List<Point2D> sampledPts = GeneratorMainEntry.getSampledSensorData(
-					15, transformedPositiveSiList);
+			List<Integer> originIndex = new ArrayList<Integer>();
 
+			List<Point2D> sampledPts = GeneratorMainEntry.getSampledSensorData(
+					5, transformedPositiveSiList, originIndex);
 			String converterFileName = String.format(
-					"results/convertedData/test%d-sample-4bini.txt", n);
+					"results/convertedData/test%d-sample-%dbini.txt", n,
+					dataSetIndex);
 
 			File convertedDir = new File("results/convertedData");
 			if (!convertedDir.exists()) {
@@ -2598,30 +2989,37 @@ public class SeparatedSensorGroups {
 
 			} else {
 				if (convertedDataFile.createNewFile()) {
-					BufferedWriter output = new BufferedWriter(new FileWriter(
-							convertedDataFile));
 
-					for (Point2D pt : sampledPts) {
-						output.write("   " + pt.getX() + "   " + pt.getY()
-								+ "\n");
-					}
-					output.close();
 				} else {
 					System.err
 							.println("failed to created " + converterFileName);
 				}
 			}
 
+			BufferedWriter sampleOutput = new BufferedWriter(new FileWriter(
+					convertedDataFile));
+
+			for (Point2D pt : sampledPts) {
+				sampleOutput
+						.write("   " + pt.getX() + "   " + pt.getY() + "\n");
+			}
+			sampleOutput.close();
+
 			String configName = String.format(
-					"results/convertedData/config%d-4.ini", n);
+					"results/convertedData/config%d-%d.ini", n, dataSetIndex);
 			String modelName = String.format(
-					"results/convertedData/test%d-sample-4bini.txt", n);
+					// "results/convertedData/test%d-sample-%dbini.txt", n,
+					"results/convertedData/test%d-sample-%db.txt", n,
+					dataSetIndex);
 			String sceneName = String.format(
-					"results/convertedData/test%d-sample-4a.txt", n);
+					"results/convertedData/test%d-sample-%da.txt", n,
+					dataSetIndex);
 			String finalRigidName = String.format(
-					"results/convertedData/test%d-rigid-4.txt", n);
+					"results/convertedData/test%d-rigid-%d.txt", n,
+					dataSetIndex);
 			String transformedModelName = String.format(
-					"results/convertedData/test%d-transform-4.txt", n);
+					"results/convertedData/test%d-transform-%d.txt", n,
+					dataSetIndex);
 			generatePtRegConfigFile(configName, modelName, sceneName,
 					finalRigidName, transformedModelName);
 
@@ -2656,17 +3054,70 @@ public class SeparatedSensorGroups {
 
 			System.out.println(result + "\n=========================");
 
-			File rigidParams = new File(finalRigidName);
+			File rigidParams = new File(transformedModelName);
 			BufferedReader paramReader = null;
 
 			paramReader = new BufferedReader(new FileReader(rigidParams));
 			String[] paramStr = paramReader.readLine().split(" ");
-			double rigidAngle = Math.toRadians(Double.parseDouble(paramStr[0]));
-			double rigidTransX = Double.parseDouble(paramStr[1]);
-			double rigidTransY = Double.parseDouble(paramStr[2]);
+
+			double rigidAngle;
+			double rigidTransX;
+			double rigidTransY;
+
+			SensorInterval firstInterval = transformedPositiveSiList.get(0);
+
+			// original
+			double x1 = firstInterval.getStart().getX();
+			double y1 = firstInterval.getStart().getY();
+			double x2 = firstInterval.getEnd().getX();
+			double y2 = firstInterval.getEnd().getY();
+
+			// transformed
+			double x1T = Double.parseDouble(paramStr[0]);
+			double y1T = Double.parseDouble(paramStr[1]);
+
+			paramStr = paramReader.readLine().split(" ");
+			double x2T = Double.parseDouble(paramStr[0]);
+			double y2T = Double.parseDouble(paramStr[1]);
+
+			if (x2T - x1T == 0) {
+				if (y2 - y1 == 0) {
+					if ((x2 - x1) * (x2T - x1T) < 0) {
+						rigidAngle = Math.PI;
+					} else
+						rigidAngle = 0;
+				}
+
+				else {
+					// In this case, x2t == x1T, we have the following equation
+					rigidAngle = Math.atan2(x2 - x1, y2 - y1);
+				}
+
+			} else {
+				double kT = Utils.getK(x1T, y1T, x2T, y2T);
+				rigidAngle = Math.atan((kT * (x2 - x1) - (y2 - y1))
+						/ (kT * (y2 - y1) + (x2 - x1)));
+				System.out.println("k is " + kT + " x1 " + x1 + " y1 " + y1
+						+ " x2 " + x2 + " y2 " + y2);
+				System.out.println("tan is " + (kT * (x2 - x1) - (y2 - y1))
+						/ (kT * (y2 - y1) + (x2 - x1)));
+			}
+
+			double x1R = x1 * Math.cos(rigidAngle) - y1 * Math.sin(rigidAngle);
+			double y1R = y1 * Math.cos(rigidAngle) + x1 * Math.sin(rigidAngle);
+
+			rigidTransX = x1T - x1R;
+			rigidTransY = y1T - y1R;
 
 			Double[] rigidFactors = { rigidAngle, 1., rigidTransX, rigidTransY };
 			Point2D rigidAnchory = new Point2D.Double(0, 0);
+
+			System.out.println("angle " + rigidAngle + " transX " + rigidTransX
+					+ " transY " + rigidTransY);
+
+			rigidFactors = ssg1.optimizeInitMatch(rigidFactors, rigidAnchory,
+					ssg1.getPositiveIntervals(), transformedPositiveSiList,
+					ssg1.getNegativeIntervals(), transformedNegativeSiList);
 
 			double rigidErr = ssg1.getMatchError(ssg1.getPositiveIntervals(),
 					ssg1.getNegativeIntervals(), transformedPositiveSiList,
@@ -2713,30 +3164,174 @@ public class SeparatedSensorGroups {
 						+ posiCigMap.size() + "\n");
 				output.close();
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 			totalNComponents += posiCigMap.size();
+			double singleErr = Math.min(minErr, rigidErr);
+			/*
+			 * if (singleErr > errThreshold) {
+			 * 
+			 * System.out.println("err is " + singleErr + " greater than" +
+			 * errThreshold + " trying other merge...");
+			 * System.out.println(factorList.size() + " merges to try..."); for
+			 * (int i = 0; i < factorList.size(); i++) { factors =
+			 * ssg1.optimizeInitMatch(factors, anchory,
+			 * ssg1.getPositiveIntervals(), ssg2.getPositiveIntervals(),
+			 * ssg1.getNegativeIntervals(), ssg2.getNegativeIntervals());
+			 * 
+			 * minErr = ssg1.getMatchError(ssg1.getPositiveIntervals(),
+			 * ssg1.getNegativeIntervals(), ssg2.getPositiveIntervals(),
+			 * ssg2.getNegativeIntervals(), factors, anchory);
+			 * 
+			 * transformedPositiveSiList = new ArrayList<SensorInterval>();
+			 * transformedNegativeSiList = new ArrayList<SensorInterval>();
+			 * 
+			 * for (SensorInterval si : ssg2.getPositiveIntervals()) {
+			 * SensorInterval transformedSi = transformInterval(si, factors,
+			 * anchory); transformedPositiveSiList.add(transformedSi); }
+			 * 
+			 * for (SensorInterval si : ssg2.getNegativeIntervals()) {
+			 * SensorInterval transformedSi = transformInterval(si, factors,
+			 * anchory); transformedNegativeSiList.add(transformedSi); }
+			 * 
+			 * posiCigMap = ssg1.findConnectedIntervals(
+			 * ssg1.getPositiveIntervals(), transformedPositiveSiList);
+			 * negaCigMap = ssg1.findConnectedIntervals(
+			 * ssg1.getNegativeIntervals(), transformedNegativeSiList); //
+			 * //////
+			 * ////////////////////////////////////////////////////////////
+			 * ///////////////////////////////////////////////// originIndex =
+			 * new ArrayList<Integer>();
+			 * 
+			 * sampledPts = GeneratorMainEntry.getSampledSensorData(5,
+			 * transformedPositiveSiList, originIndex); converterFileName =
+			 * String.format( "results/convertedData/test%d-sample-%dbini.txt",
+			 * n, dataSetIndex);
+			 * 
+			 * convertedDir = new File("results/convertedData"); if
+			 * (!convertedDir.exists()) { convertedDir.mkdir(); }
+			 * 
+			 * convertedDataFile = new File(converterFileName); if
+			 * (convertedDataFile.exists()) {
+			 * 
+			 * } else { if (convertedDataFile.createNewFile()) {
+			 * 
+			 * } else { System.err.println("failed to created " +
+			 * converterFileName); } }
+			 * 
+			 * sampleOutput = new BufferedWriter(new FileWriter(
+			 * convertedDataFile));
+			 * 
+			 * for (Point2D pt : sampledPts) { sampleOutput.write("   " +
+			 * pt.getX() + "   " + pt.getY() + "\n"); } sampleOutput.close();
+			 * 
+			 * configName = String.format(
+			 * "results/convertedData/config%d-%d.ini", n, dataSetIndex);
+			 * modelName = String.format(
+			 * "results/convertedData/test%d-sample-%dbini.txt", n,
+			 * dataSetIndex); sceneName = String.format(
+			 * "results/convertedData/test%d-sample-%da.txt", n, dataSetIndex);
+			 * finalRigidName = String.format(
+			 * "results/convertedData/test%d-rigid-%d.txt", n, dataSetIndex);
+			 * transformedModelName = String.format(
+			 * "results/convertedData/test%d-transform-%d.txt", n,
+			 * dataSetIndex); generatePtRegConfigFile(configName, modelName,
+			 * sceneName, finalRigidName, transformedModelName);
+			 * 
+			 * //
+			 * ///////////////////////////////////////////////////////////////
+			 * //////////////////////////////// //
+			 * //////////////////////////////
+			 * /////////////////////////////////////////////////////////////////
+			 * // call c++ point set registration process = new ProcessBuilder(
+			 * "/home/peng/ANU/gmmreg-master/C++/gmmreg_demo", configName,
+			 * "rigid").start();
+			 * 
+			 * reader = new BufferedReader(new InputStreamReader(
+			 * process.getInputStream())); builder = new StringBuilder(); line =
+			 * null; while ((line = reader.readLine()) != null) {
+			 * builder.append(line);
+			 * builder.append(System.getProperty("line.separator")); } result =
+			 * builder.toString(); System.out .println(
+			 * "=========================\nc++ point set registration output \n"
+			 * + result); errReader = new BufferedReader(new InputStreamReader(
+			 * process.getErrorStream())); errBuilder = new StringBuilder();
+			 * line = null; while ((line = errReader.readLine()) != null) {
+			 * errBuilder.append(line);
+			 * errBuilder.append(System.getProperty("line.separator")); } result
+			 * = errBuilder.toString();
+			 * 
+			 * System.out.println(result + "\n=========================");
+			 * 
+			 * rigidParams = new File(transformedModelName); paramReader = null;
+			 * 
+			 * paramReader = new BufferedReader( new FileReader(rigidParams));
+			 * paramStr = paramReader.readLine().split(" ");
+			 * 
+			 * firstInterval = transformedPositiveSiList.get(0);
+			 * 
+			 * // original x1 = firstInterval.getStart().getX(); y1 =
+			 * firstInterval.getStart().getY(); x2 =
+			 * firstInterval.getEnd().getX(); y2 =
+			 * firstInterval.getEnd().getY();
+			 * 
+			 * // transformed x1T = Double.parseDouble(paramStr[0]); y1T =
+			 * Double.parseDouble(paramStr[1]);
+			 * 
+			 * paramStr = paramReader.readLine().split(" "); x2T =
+			 * Double.parseDouble(paramStr[0]); y2T =
+			 * Double.parseDouble(paramStr[1]);
+			 * 
+			 * if (x2T - x1T == 0) { if (y2 - y1 == 0) { if ((x2 - x1) * (x2T -
+			 * x1T) < 0) { rigidAngle = Math.PI; } else rigidAngle = 0; }
+			 * 
+			 * else { // In this case, x2t == x1T, we have the following //
+			 * equation rigidAngle = Math.atan2(x2 - x1, y2 - y1); }
+			 * 
+			 * } else { double kT = Utils.getK(x1T, y1T, x2T, y2T); rigidAngle =
+			 * Math.atan((kT * (x2 - x1) - (y2 - y1)) / (kT * (y2 - y1) + (x2 -
+			 * x1))); System.out.println("k is " + kT + " x1 " + x1 + " y1 " +
+			 * y1 + " x2 " + x2 + " y2 " + y2); System.out.println("tan is " +
+			 * (kT * (x2 - x1) - (y2 - y1)) / (kT * (y2 - y1) + (x2 - x1))); }
+			 * 
+			 * x1R = x1 * Math.cos(rigidAngle) - y1 * Math.sin(rigidAngle); y1R
+			 * = y1 * Math.cos(rigidAngle) + x1 * Math.sin(rigidAngle);
+			 * 
+			 * rigidTransX = x1T - x1R; rigidTransY = y1T - y1R;
+			 * 
+			 * rigidFactors[0] = rigidAngle; rigidFactors[1] = 1.;
+			 * rigidFactors[2] = rigidTransX; rigidFactors[3] = rigidTransY;
+			 * rigidAnchory = new Point2D.Double(0, 0);
+			 * 
+			 * System.out.println("angle " + rigidAngle + " transX " +
+			 * rigidTransX + " transY " + rigidTransY);
+			 * 
+			 * rigidFactors = ssg1.optimizeInitMatch(rigidFactors, rigidAnchory,
+			 * ssg1.getPositiveIntervals(), transformedPositiveSiList,
+			 * ssg1.getNegativeIntervals(), transformedNegativeSiList);
+			 * 
+			 * rigidErr = ssg1.getMatchError(ssg1.getPositiveIntervals(),
+			 * ssg1.getNegativeIntervals(), transformedPositiveSiList,
+			 * transformedNegativeSiList, rigidFactors, rigidAnchory);
+			 * 
+			 * singleErr = Math.min(minErr, rigidErr); if (singleErr <
+			 * errThreshold) {
+			 * System.out.println("good match found, err reduced to " +
+			 * singleErr); break; } } }
+			 */
+			singleErr = Math.min(minErr, rigidErr);
 			err += Math.min(minErr, rigidErr);
+
 			dataFileHeader = String.format(
 					"data_ijcai_paper/test%d-positiveData-", n);
 
-			dataFileName = String.format(dataFileHeader + "%d", 8);
+			dataFileName = String.format(dataFileHeader + "%d", dataIndex1);
 
 			SensorData sdtruth1 = new SensorData(dataFileName, 800, 600);
 
-			dataFileName = String.format(dataFileHeader + "%d", 9);
+			dataFileName = String.format(dataFileHeader + "%d", dataIndex2);
 
 			SensorData sdtruth2 = new SensorData(dataFileName, 800, 600);
-
-			// if (pt11.getX() > pt12.getX())
-			// angle1 = Math.PI + angle1;
-			// else if (pt11.getY() < pt12.getY())
-			// angle1 = 2 * Math.PI + angle1;
-			// if (pt21.getX() > pt22.getX())
-			// angle2 = Math.PI + angle2;
-			// else if (pt21.getY() < pt22.getY())
-			// angle2 = 2 * Math.PI + angle2;
 
 			double angleDiffTruth = sdtruth1.getAngle() - sdtruth2.getAngle();
 			double scaleTruth = 1.;
@@ -2751,18 +3346,29 @@ public class SeparatedSensorGroups {
 			// factors[0] += Math.PI;
 			// }
 
+			if (singleErr < errThreshold) {
+				errCorrect += singleErr;
+				scaleDiffCorrect += Math.abs(scaleTruth - factors[1]);
+				angleDiffCorrect += Math.abs(factors[0] - angleDiffTruth);
+				correctCount++;
+			} else {
+				errWrong += singleErr;
+				scaleDiffWrong += Math.abs(scaleTruth - factors[1]);
+				angleDiffWrong += Math.abs(factors[0] - angleDiffTruth);
+				wrongCount++;
+
+			}
+
 			angleDiff += Math.abs(factors[0] - angleDiffTruth);
 			scaleTruthDiff += Math.abs(scaleTruth - factors[1]);
 
-			
 			List<SensorGroup> sgList1 = new ArrayList<SensorGroup>();
 			sgList1.add(ssg1.positiveIntervalGroupAll);
 			List<SensorGroup> sgList2 = new ArrayList<SensorGroup>();
 			sgList2.add(ssg2.positiveIntervalGroupAll);
 			String fileName = String.format("results/test%d-ini.png", n);
-			saveMatchedPicture(fileName, sgList1 , sgList2, factors,anchory);
-			
-			
+			saveMatchedPicture(fileName, sgList1, sgList2, factors, anchory);
+
 			sgList1 = new ArrayList<SensorGroup>();
 			sgList1.add(ssg1.positiveIntervalGroupAll);
 
@@ -2772,12 +3378,366 @@ public class SeparatedSensorGroups {
 			SensorGroup sg2 = new SensorGroup(siMap2, -2);
 			sgList2.add(sg2);
 			fileName = String.format("results/test%d-rigid.png", n);
-			saveMatchedPicture(fileName, sgList1, sgList2, rigidFactors,rigidAnchory);
+			saveMatchedPicture(fileName, sgList1, sgList2, rigidFactors,
+					rigidAnchory);
+
+			System.out.println("************ err " + singleErr
+					+ "  *****************");
 
 		}
-		System.out.println("err  " + err / 100);
-		System.out.println("angle diff  " + angleDiff / 100);
-		System.out.println("scaleTruthDiff  " + scaleTruthDiff / 100);
+		System.out.println("err  " + err / (correctCount + wrongCount));
+		System.out.println("angle diff  " + angleDiff
+				/ (correctCount + wrongCount));
+		System.out.println("scaleTruthDiff  " + scaleTruthDiff
+				/ (correctCount + wrongCount));
+
+		System.out.println("Scale diff for Correct  " + scaleDiffCorrect
+				/ correctCount);
+		System.out.println("Scale diff for wrong " + scaleDiffWrong
+				/ wrongCount);
+		System.out.println("Angle diff for Correct  " + angleDiffCorrect
+				/ correctCount);
+		System.out.println("Angle diff for wrong " + angleDiffWrong
+				/ wrongCount);
+		System.out.println("Err Correct  " + errCorrect / correctCount);
+		System.out.println("Err wrong " + errWrong / wrongCount);
+		System.out.println("Err Correct count " + correctCount);
+		System.out.println("Err wrong count" + wrongCount);
+	}
+
+	public static void testStgPtReg() throws Exception {
+
+		int dataSetIndex = 4;
+		int dataIndex1 = 8;
+		int dataIndex2 = 9;
+
+		int totalNComponents = 0;
+		double angleDiff = 0;
+		double scaleTruthDiff = 0;
+
+		double errThreshold = 0.3;
+
+		double err = 0.;
+
+		double errCorrect = 0.;
+		double scaleDiffCorrect = 0.;
+		double angleDiffCorrect = 0.;
+		double scaleDiffWrong = 0.;
+		double angleDiffWrong = 0.;
+
+		int correctCount = 0;
+		double errWrong = 0.;
+		int wrongCount = 0;
+
+		for (int n = 222; n < 323; n++) {
+			// for (int n = 263; n < 264; n++) {
+			String dataFileHeader = String.format(
+					"data_ijcai_paper/test%d-positiveDataNorm-", n);
+
+			String dataFileName = String.format(dataFileHeader + "%d",
+					dataIndex1);
+
+			SensorData sd1 = new SensorData(dataFileName, 800, 600);
+
+			String negativeDataFileHeader = String.format(
+					"data_ijcai_paper/test%d-negativeDataNorm-", n);
+			String negativeDataFileName = String.format(negativeDataFileHeader
+					+ "%d", dataIndex1);
+
+			SensorData negSd1 = new SensorData(negativeDataFileName, 800, 600);
+
+			dataFileName = String.format(dataFileHeader + "%d", dataIndex2);
+			negativeDataFileName = String.format(negativeDataFileHeader + "%d",
+					dataIndex2);
+
+			SensorData sd2 = new SensorData(dataFileName, 800, 600);
+			SensorData negSd2 = new SensorData(negativeDataFileName, 800, 600);
+
+			SeparatedSensorGroups ssg1 = new SeparatedSensorGroups(sd1);
+			ssg1.setNegativeSensorIntervals(negSd1.getPositiveIntervals());
+
+			SeparatedSensorGroups ssg2 = new SeparatedSensorGroups(sd2);
+			ssg2.setNegativeSensorIntervals(negSd2.getPositiveIntervals());
+
+			Point2D anchory = ssg2.positiveIntervalGroupAll.getCentrePoint();
+
+			// ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+			List<Integer> originIndex = new ArrayList<Integer>();
+
+			List<Point2D> sampledPts = GeneratorMainEntry.getSampledSensorData(
+					5, ssg2.getPositiveIntervals(), originIndex);
+			String converterFileName = String.format(
+					"results/convertedData/test%d-sample-%db.txt", n,
+					dataSetIndex);
+
+			File convertedDir = new File("results/convertedData");
+			if (!convertedDir.exists()) {
+				convertedDir.mkdir();
+			}
+
+			File convertedDataFile = new File(converterFileName);
+			if (convertedDataFile.exists()) {
+
+			} else {
+				if (convertedDataFile.createNewFile()) {
+
+				} else {
+					System.err
+							.println("failed to created " + converterFileName);
+				}
+			}
+
+			BufferedWriter sampleOutput = new BufferedWriter(new FileWriter(
+					convertedDataFile));
+
+			for (Point2D pt : sampledPts) {
+				sampleOutput
+						.write("   " + pt.getX() + "   " + pt.getY() + "\n");
+			}
+			sampleOutput.close();
+
+			String configName = String.format(
+					"results/convertedData/config%d-%d.ini", n, dataSetIndex);
+			String modelName = String.format(
+					// "results/convertedData/test%d-sample-%dbini.txt", n,
+					"results/convertedData/test%d-sample-%db.txt", n,
+					dataSetIndex);
+			String sceneName = String.format(
+					"results/convertedData/test%d-sample-%da.txt", n,
+					dataSetIndex);
+			String finalRigidName = String.format(
+					"results/convertedData/test%d-rigid-%d.txt", n,
+					dataSetIndex);
+			String transformedModelName = String.format(
+					"results/convertedData/test%d-transform-%d.txt", n,
+					dataSetIndex);
+			generatePtRegConfigFile(configName, modelName, sceneName,
+					finalRigidName, transformedModelName);
+
+			// ///////////////////////////////////////////////////////////////////////////////////////////////
+			// ///////////////////////////////////////////////////////////////////////////////////////////////
+			// call c++ point set registration
+			Process process = new ProcessBuilder(
+					"/home/peng/ANU/gmmreg-master/C++/gmmreg_demo", configName,
+					"rigid").start();
+
+			BufferedReader reader = new BufferedReader(new InputStreamReader(
+					process.getInputStream()));
+			StringBuilder builder = new StringBuilder();
+			String line = null;
+			while ((line = reader.readLine()) != null) {
+				builder.append(line);
+				builder.append(System.getProperty("line.separator"));
+			}
+			String result = builder.toString();
+			System.out
+					.println("=========================\nc++ point set registration output \n"
+							+ result);
+			BufferedReader errReader = new BufferedReader(
+					new InputStreamReader(process.getErrorStream()));
+			StringBuilder errBuilder = new StringBuilder();
+			line = null;
+			while ((line = errReader.readLine()) != null) {
+				errBuilder.append(line);
+				errBuilder.append(System.getProperty("line.separator"));
+			}
+			result = errBuilder.toString();
+
+			System.out.println(result + "\n=========================");
+
+			File rigidParams = new File(transformedModelName);
+			BufferedReader paramReader = null;
+
+			paramReader = new BufferedReader(new FileReader(rigidParams));
+			String[] paramStr = paramReader.readLine().split(" ");
+
+			double rigidAngle;
+			double rigidTransX;
+			double rigidTransY;
+
+			SensorInterval firstInterval = ssg2.getPositiveIntervals().get(0);
+
+			// original
+			double x1 = firstInterval.getStart().getX();
+			double y1 = firstInterval.getStart().getY();
+			double x2 = firstInterval.getEnd().getX();
+			double y2 = firstInterval.getEnd().getY();
+
+			// transformed
+			double x1T = Double.parseDouble(paramStr[0]);
+			double y1T = Double.parseDouble(paramStr[1]);
+
+			paramStr = paramReader.readLine().split(" ");
+			double x2T = Double.parseDouble(paramStr[0]);
+			double y2T = Double.parseDouble(paramStr[1]);
+
+			if (x2T - x1T == 0) {
+				if (y2 - y1 == 0) {
+					if ((x2 - x1) * (x2T - x1T) < 0) {
+						rigidAngle = Math.PI;
+					} else
+						rigidAngle = 0;
+				}
+
+				else {
+					// In this case, x2t == x1T, we have the following equation
+					rigidAngle = Math.atan2(x2 - x1, y2 - y1);
+				}
+
+			} else {
+				double kT = Utils.getK(x1T, y1T, x2T, y2T);
+				rigidAngle = Math.atan((kT * (x2 - x1) - (y2 - y1))
+						/ (kT * (y2 - y1) + (x2 - x1)));
+				System.out.println("k is " + kT + " x1 " + x1 + " y1 " + y1
+						+ " x2 " + x2 + " y2 " + y2);
+				System.out.println("tan is " + (kT * (x2 - x1) - (y2 - y1))
+						/ (kT * (y2 - y1) + (x2 - x1)));
+			}
+
+			double x1R = x1 * Math.cos(rigidAngle) - y1 * Math.sin(rigidAngle);
+			double y1R = y1 * Math.cos(rigidAngle) + x1 * Math.sin(rigidAngle);
+
+			rigidTransX = x1T - x1R;
+			rigidTransY = y1T - y1R;
+
+			Double[] rigidFactors = { rigidAngle, 1., rigidTransX, rigidTransY };
+			Point2D rigidAnchory = new Point2D.Double(0, 0);
+			//Point2D rigidAnchory = anchory;
+			System.out.println("angle " + rigidAngle + " transX " + rigidTransX
+					+ " transY " + rigidTransY);
+
+			rigidFactors = ssg1.optimizeInitMatch(rigidFactors, rigidAnchory,
+					ssg1.getPositiveIntervals(), ssg2.getPositiveIntervals(),
+					ssg1.getNegativeIntervals(), ssg2.getNegativeIntervals());
+
+			double rigidErr = ssg1.getMatchError(ssg1.getPositiveIntervals(),
+					ssg1.getNegativeIntervals(), ssg2.getPositiveIntervals(),
+					ssg2.getNegativeIntervals(), rigidFactors, rigidAnchory);
+			if (Double.isNaN(rigidErr)) {
+				rigidFactors[0] = rigidFactors[0] + Math.PI;
+
+				x1R = x1 * Math.cos(rigidAngle) - y1 * Math.sin(rigidAngle);
+				y1R = y1 * Math.cos(rigidAngle) + x1 * Math.sin(rigidAngle);
+
+				rigidTransX = x1T - x1R;
+				rigidTransY = y1T - y1R;
+				
+				rigidFactors[2] = rigidTransX;
+				rigidFactors[3] = rigidTransY;
+				
+				rigidErr = ssg1
+						.getMatchError(ssg1.getPositiveIntervals(),
+								ssg1.getNegativeIntervals(),
+								ssg2.getPositiveIntervals(),
+								ssg2.getNegativeIntervals(), rigidFactors,
+								rigidAnchory);
+			}
+			//
+			// List<SensorInterval> transformedRigidPositiveSiList = new
+			// ArrayList<SensorInterval>();
+			// List<SensorInterval> transformedRigidNegativeSiList = new
+			// ArrayList<SensorInterval>();
+			//
+			// for (SensorInterval si : transformedPositiveSiList) {
+			// SensorInterval transformedSi = transformInterval(si,
+			// rigidFactors,
+			// rigidAnchory);
+			// transformedRigidPositiveSiList.add(transformedSi);
+			// }
+			//
+			// for (SensorInterval si : transformedNegativeSiList) {
+			// SensorInterval transformedSi = transformInterval(si,
+			// rigidFactors,
+			// rigidAnchory);
+			// transformedRigidNegativeSiList.add(transformedSi);
+			// }
+
+			// System.out.println("n components " + posiCigMap.size());
+
+			File file = new File("results/componentCount.txt");
+			if (file.exists()) {
+
+			} else {
+				if (file.createNewFile()) {
+					System.out.println("created results/componentCount.txt");
+
+				} else {
+					System.err
+							.println("failed to created data/CaseCno intersections found, please check if two measurements are parallelount.ini");
+				}
+			}
+			double singleErr = rigidErr;
+			if (Double.isNaN(rigidErr))
+				continue;
+
+			err += rigidErr;
+
+			dataFileHeader = String.format(
+					"data_ijcai_paper/test%d-positiveData-", n);
+
+			dataFileName = String.format(dataFileHeader + "%d", dataIndex1);
+
+			SensorData sdtruth1 = new SensorData(dataFileName, 800, 600);
+
+			dataFileName = String.format(dataFileHeader + "%d", dataIndex2);
+
+			SensorData sdtruth2 = new SensorData(dataFileName, 800, 600);
+
+			double angleDiffTruth = sdtruth1.getAngle() - sdtruth2.getAngle();
+			double scaleTruth = 1.;
+
+			if (singleErr < errThreshold) {
+				errCorrect += singleErr;
+				correctCount++;
+			} else {
+				errWrong += singleErr;
+				wrongCount++;
+
+			}
+
+			angleDiff += Math.abs(rigidAngle - angleDiffTruth);
+			scaleTruthDiff += Math.abs(scaleTruth - 1);
+
+			List<SensorGroup> sgList1 = new ArrayList<SensorGroup>();
+			sgList1.add(ssg1.positiveIntervalGroupAll);
+			List<SensorGroup> sgList2 = new ArrayList<SensorGroup>();
+			sgList2.add(ssg2.positiveIntervalGroupAll);
+			String fileName = String.format("results/test%d-ini.png", n);
+
+			sgList1 = new ArrayList<SensorGroup>();
+			sgList1.add(ssg1.positiveIntervalGroupAll);
+
+			sgList2 = new ArrayList<SensorGroup>();
+			HashMap<Integer, List<SensorInterval>> siMap2 = new HashMap<Integer, List<SensorInterval>>();
+			siMap2.put(-2, ssg2.getPositiveIntervals());
+			SensorGroup sg2 = new SensorGroup(siMap2, -2);
+			sgList2.add(sg2);
+			fileName = String.format("results/test%d-rigid.png", n);
+			saveMatchedPicture(fileName, sgList1, sgList2, rigidFactors,
+					rigidAnchory);
+
+			System.out.println("************ err " + singleErr
+					+ "  *****************");
+
+		}
+		System.out.println("err  " + err / (correctCount + wrongCount));
+		System.out.println("angle diff  " + angleDiff
+				/ (correctCount + wrongCount));
+		System.out.println("scaleTruthDiff  " + scaleTruthDiff
+				/ (correctCount + wrongCount));
+
+		System.out.println("Scale diff for Correct  " + scaleDiffCorrect
+				/ correctCount);
+		System.out.println("Scale diff for wrong " + scaleDiffWrong
+				/ wrongCount);
+		System.out.println("Angle diff for Correct  " + angleDiffCorrect
+				/ correctCount);
+		System.out.println("Angle diff for wrong " + angleDiffWrong
+				/ wrongCount);
+		System.out.println("Err Correct  " + errCorrect / correctCount);
+		System.out.println("Err wrong " + errWrong / wrongCount);
+		System.out.println("Err Correct count " + correctCount);
+		System.out.println("Err wrong count" + wrongCount);
 	}
 
 	/**
@@ -3179,7 +4139,8 @@ public class SeparatedSensorGroups {
 
 	public static void main(String[] args) throws Exception {
 		long begintime = System.currentTimeMillis();
-		testStg1();
+		// testStg1();
+		testStgPtReg();
 		// testShapeMatchStg();
 		// testErosion();
 		// testDilation();

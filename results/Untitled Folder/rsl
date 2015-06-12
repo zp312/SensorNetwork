@@ -1,0 +1,55 @@
+Gap 25
+err  0.07847824064074937
+angle diff  4.875148720962291
+scaleTruthDiff  0.013448751474744414
+Scale diff for Correct  0.012308718481925324
+Scale diff for wrong 0.03488137173974339
+Angle diff for Correct  4.7380840533704935
+Angle diff for wrong 7.451964471688096
+Err Correct  0.05643760295244821
+Err wrong 0.49284222918081183
+Err Correct count 95
+Err wrong count 5
+time consumed 173744ms
+
+Gap 20
+err  0.06187934288327035
+angle diff  4.766491420221622
+scaleTruthDiff  0.010209852408767263
+Scale diff for Correct  0.01007098491361331
+Scale diff for wrong 0.02381886693385471
+Angle diff for Correct  4.80789321365471
+Angle diff for wrong 0.7091156637790093
+Err Correct  0.05701462057150448
+Err wrong 0.5386221294363257
+Err Correct count 99
+Err wrong count 1
+time consumed 147899ms
+
+Gap 15
+err  0.040850907803720256
+angle diff  4.835542904106111
+scaleTruthDiff  0.006593356016253956
+Scale diff for Correct  0.0065294207267017805
+Scale diff for wrong 0.012922949681919316
+Angle diff for Correct  4.785765973751684
+Angle diff for wrong 9.76345900919435
+Err Correct  0.03681363878617662
+Err wrong 0.44054054054054054
+Err Correct count 99
+Err wrong count1
+time consumed 219884ms
+
+Gap 5
+err  0.014637887230590542
+angle diff  4.741632296402393
+scaleTruthDiff  0.004144352163557122
+Scale diff for Correct  0.0034664360343971156
+Scale diff for wrong 0.07125804895039778
+Angle diff for Correct  4.726263465703004
+Angle diff for wrong 6.263146535641866
+Err Correct  0.011325455801814867
+Err wrong 0.342568599793837
+Err Correct count 99
+Err wrong count1
+time consumed 1126474ms

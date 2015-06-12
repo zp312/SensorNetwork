@@ -23,7 +23,6 @@ import sn.regiondetect.ComplexRegion;
 
 public class GeneratorMainEntry {
 
-	
 	/**
 	 * uniformly sample data point from positive intervals
 	 * 
@@ -31,29 +30,36 @@ public class GeneratorMainEntry {
 	 *            gap between sampled data point in pixel
 	 * @return list of sampled points
 	 */
-	public static List<Point2D> getSampledSensorData(double gap, List<SensorInterval> siList) {
+	public static List<Point2D> getSampledSensorData(double gap,
+			List<SensorInterval> siList, List<Integer> originIndex) {
 
 		List<Point2D> pts = new ArrayList<Point2D>();
+		int originCount = 0; //count the position of the origin points
+		for (SensorInterval si : siList) {
+			// caseFileCount = Integer.parseInt(nCase);
 
-			for (SensorInterval si : siList) {
-				// caseFileCount = Integer.parseInt(nCase);
+			double x1 = si.getStart().getX();
+			double y1 = si.getStart().getY();
+			double x2 = si.getEnd().getX();
+			double y2 = si.getEnd().getY();
+
+			// System.out.println("x1 " +x1 + " y1 " +y1 + " x2 " +x2 +
+			// " y2 " + y2);
+			pts.add(si.getStart());
+			originIndex.add(originCount);
+			originCount++;
+			pts.add(si.getEnd());
+			originIndex.add(originCount);
+			originCount++;
+			List<Point2D> sampledPts = sampleFromInterval(x1, y1, x2, y2, gap);
+			originCount += sampledPts.size();
 			
-				double x1 = si.getStart().getX();
-				double y1 = si.getStart().getY();
-				double x2 = si.getEnd().getX();
-				double y2 = si.getEnd().getY();
-
-				// System.out.println("x1 " +x1 + " y1 " +y1 + " x2 " +x2 +
-				// " y2 " + y2);
-				// pts.add(interval.getStart());
-				// pts.add(interval.getEnd());
-				
-				pts.addAll(sampleFromInterval(x1, y1, x2, y2, gap));
-			}
+			pts.addAll(sampledPts);
+		}
 
 		return pts;
 	}
-	
+
 	/**
 	 * uniformly sample data point from positive intervals
 	 * 
@@ -103,12 +109,11 @@ public class GeneratorMainEntry {
 		// System.out.println("x1 " +x1 + " y1 " +y1 + " x2 " +x2 + " y2 " +
 		// y2);
 
-
 		List<Point2D> pts = new ArrayList<Point2D>();
-//
-//		pts.add(new Point2D.Double(x1, y1));
-//		pts.add(new Point2D.Double(x2, y2));
-//		
+		//
+		// pts.add(new Point2D.Double(x1, y1));
+		// pts.add(new Point2D.Double(x2, y2));
+		//
 		double k = Double.NaN;
 		if (x2 - x1 != 0) {
 			k = (y2 - y1) / (x2 - x1);
